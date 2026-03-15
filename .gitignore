@@ -1,57 +1,33 @@
-# Maven
+HELP.md
 target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
+backend/.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-# Java
-*.class
-*.log
-hs_err_pid*
-replay_pid*
-
-# IntelliJ IDEA
-.idea/
-*.iml
-*.iws
-
-# VS Code
-.vscode/
-
-# Eclipse / STS
-.project
+### STS ###
+.apt_generated
 .classpath
-.settings/
-.apt_generated/
 .factorypath
+.project
+.settings
 .springBeans
-.sts4-cache/
+.sts4-cache
 
-# OS files
-.DS_Store
-Thumbs.db
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
 
-# Environment / local secrets
-.env
-.env.*
-!.env.example
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-# Application local overrides
-application-local.properties
-application-local.yml
-application-local.yaml
-
-# Docker local data
-postgres-data/
-docker-data/
-
-# Optional archives
-*.jar
-*.war
-*.nar
-*.ear
+### VS Code ###
+.vscode/
