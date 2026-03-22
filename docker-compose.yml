@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: lingualink-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: study_db
+      POSTGRES_USER: study_user
+      POSTGRES_PASSWORD: study_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lingualink-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:

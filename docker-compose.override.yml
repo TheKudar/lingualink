@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: lingualink-backend-dev
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - maven_cache:/root/.m2
+    working_dir: /app
+    command: ./mvnw spring-boot:run -Dspring-boot.run.profiles=docker
+
+volumes:
+  postgres_data:
+  maven_cache:
