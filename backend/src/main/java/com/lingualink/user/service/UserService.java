@@ -26,7 +26,8 @@ public class UserService {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
         return UserMapper.INSTANCE.toDto(user);
     }
-
+    
+    @Transactional
     public UserDto update(UserDto userDto) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
