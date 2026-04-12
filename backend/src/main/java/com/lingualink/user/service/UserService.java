@@ -4,8 +4,8 @@ import com.lingualink.user.dto.UserDto;
 import com.lingualink.user.entity.User;
 import com.lingualink.user.mapper.UserMapper;
 import com.lingualink.user.repository.UserRepository;
+import com.lingualink.common.exception.AppException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ public class UserService {
 
     public UserDto getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new AppException("User not found"));
         return UserMapper.INSTANCE.toDto(user);
     }
     
@@ -31,7 +31,7 @@ public class UserService {
     public UserDto update(UserDto userDto) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("User not found"));
 
         if (userDto.getFirstName() != null) {
             user.setFirstName(userDto.getFirstName());
