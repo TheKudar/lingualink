@@ -1,0 +1,153 @@
+package com.lingualink.course.controller;
+
+import com.lingualink.common.exception.AppException;
+import com.lingualink.course.dto.CourseCreateRequest;
+import com.lingualink.course.dto.CourseResponse;
+import com.lingualink.course.dto.CourseSummaryResponse;
+import com.lingualink.course.dto.CourseUpdateRequest;
+import com.lingualink.course.entity.CourseLanguage;
+import com.lingualink.course.entity.CourseLevel;
+import com.lingualink.course.entity.CourseStatus;
+import com.lingualink.course.service.CourseService;
+import com.lingualink.user.entity.User;
+import com.lingualink.user.entity.UserRole;
+import com.lingualink.user.repository.UserRepository;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+
+@RestController
+@RequestMapping("/api/courses")
+@RequiredArgsConstructor
+public class CourseController {
+
+    private final CourseService courseService;
+    private final UserRepository userRepository;
+
+    @PostMapping
+    public ResponseEntity<CourseResponse> createCourse(
+            @Valid @RequestBody CourseCreateRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Long creatorId = getCurrentUserId(currentUser);
+        CourseResponse response = courseService.createCourse(request, creatorId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CourseResponse> getCourse(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Long currentUserId = getCurrentUserId(currentUser);
+        boolean isAdmin = isAdmin(currentUser);
+        CourseResponse response = courseService.getCourseById(id, currentUserId, isAdmin);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CourseResponse> updateCourse(
+            @PathVariable Long id,
+            @Valid @RequestBody CourseUpdateRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Long currentUserId = getCurrentUserId(currentUser);
+        boolean isAdmin = isAdmin(currentUser);
+        CourseResponse response = courseService.updateCourse(id, request, currentUserId, isAdmin);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCourse(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Long currentUserId = getCurrentUserId(currentUser);
+        boolean isAdmin = isAdmin(currentUser);
+        courseService.deleteCourse(id, currentUserId, isAdmin);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/published")
+    public ResponseEntity<Page<CourseSummaryResponse>> getPublishedCourses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) CourseLanguage language,
+            @RequestParam(required = false) CourseLevel level,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Double minRating,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Page<CourseSummaryResponse> courses = courseService.getPublishedCourses(
+                keyword, language, level, minPrice, maxPrice, minRating, pageable);
+        return ResponseEntity.ok(courses);
+    }
+
+    @GetMapping("/creator/{creatorId}")
+    public ResponseEntity<Page<CourseSummaryResponse>> getCreatorCourses(
+            @PathVariable Long creatorId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Page<CourseSummaryResponse> courses = courseService.getCreatorCourses(creatorId, pageable);
+        return ResponseEntity.ok(courses);
+    }
+
+    @GetMapping("/my-courses")
+    public ResponseEntity<Page<CourseSummaryResponse>> getMyCreatedCourses(
+            @AuthenticationPrincipal UserDetails currentUser,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Long creatorId = getCurrentUserId(currentUser);
+        Page<CourseSummaryResponse> courses = courseService.getCreatorCourses(creatorId, pageable);
+        return ResponseEntity.ok(courses);
+    }
+
+    @PostMapping("/{id}/submit-for-review")
+    public ResponseEntity<CourseResponse> submitForReview(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        Long currentUserId = getCurrentUserId(currentUser);
+        CourseUpdateRequest request = CourseUpdateRequest.builder()
+                .status(CourseStatus.PENDING)
+                .build();
+
+        CourseResponse response = courseService.updateCourse(
+                id, request, currentUserId, false);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/archive")
+    public ResponseEntity<CourseResponse> archiveCourse(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        Long currentUserId = getCurrentUserId(currentUser);
+        boolean isAdmin = isAdmin(currentUser);
+        CourseUpdateRequest request = CourseUpdateRequest.builder()
+                .status(CourseStatus.ARCHIVED)
+                .build();
+
+        CourseResponse response = courseService.updateCourse(
+                id, request, currentUserId, isAdmin);
+        return ResponseEntity.ok(response);
+    }
+
+    // Вспомогательные методы
+    private Long getCurrentUserId(UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new AppException("User not found"));
+        return user.getId();
+    }
+
+    private boolean isAdmin(UserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+}
