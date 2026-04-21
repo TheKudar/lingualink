@@ -23,6 +23,9 @@ public class Course {
     @Column(nullable = false, length = 1000)
     private String description;
 
+    @Column(name = "cover_image_url")
+    private String coverImageUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private CourseLanguage language;
