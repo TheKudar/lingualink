@@ -46,4 +46,14 @@ public class UserService {
         User updated = userRepository.save(user);
         return UserMapper.INSTANCE.toDto(updated);
     }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new AppException("User not found with id: " + id));
+    }
+
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException("User not found with username: " + username));
+    }
 }
