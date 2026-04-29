@@ -73,7 +73,7 @@ public class ModuleController {
     }
 
     private Long getCurrentUserId(UserDetails userDetails) {
-        User user = userRepository.findByUsername(userDetails.getUsername())
+        User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                 .orElseThrow(() -> new AppException("User not found"));
         return user.getId();
     }
