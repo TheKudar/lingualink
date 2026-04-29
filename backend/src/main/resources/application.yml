@@ -1,15 +1,20 @@
 spring:
+  profiles:
+    default: local
   jpa:
+    open-in-view: false
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
 
 server:
   port: 8080
 
 jwt:
-  secret: c3VwZXItc2VjcmV0LXN1cGVyLXNlY3JldC1zdXBlci1zZWNyZXQxMjM0NTY=
+  secret: ${JWT_SECRET}
   access-token-expiration: 3600000
