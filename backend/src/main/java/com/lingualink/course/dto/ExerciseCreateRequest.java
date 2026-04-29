@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 public record ExerciseCreateRequest(
         @NotNull(message = "Exercise type is required")
         ExerciseType type,
@@ -14,8 +16,8 @@ public record ExerciseCreateRequest(
         @Size(max = 1000, message = "Question must be at most 1000 characters")
         String question,
 
-        @Size(max = 5000, message = "Options must be at most 5000 characters")
-        String options,
+        @Size(max = 20, message = "Options must contain at most 20 items")
+        List<@Size(max = 500, message = "Each option must be at most 500 characters") String> options,
 
         @NotBlank(message = "Correct answer is required")
         @Size(max = 1000, message = "Correct answer must be at most 1000 characters")

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "exercises")
@@ -29,8 +30,9 @@ public class Exercise {
     @Column(nullable = false, length = 1000)
     private String question;
 
+    @Convert(converter = StringListJsonConverter.class)
     @Column(name = "answer_options", columnDefinition = "TEXT")
-    private String options;
+    private List<String> options;
 
     @Column(name = "correct_answer", nullable = false, length = 1000)
     private String correctAnswer;

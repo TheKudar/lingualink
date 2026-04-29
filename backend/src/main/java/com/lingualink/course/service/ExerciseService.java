@@ -10,6 +10,7 @@ import com.lingualink.course.entity.Enrollment;
 import com.lingualink.course.entity.EnrollmentStatus;
 import com.lingualink.course.entity.Exercise;
 import com.lingualink.course.entity.ExerciseAttempt;
+import com.lingualink.course.entity.ExerciseType;
 import com.lingualink.course.entity.Lesson;
 import com.lingualink.course.repository.EnrollmentRepository;
 import com.lingualink.course.repository.ExerciseAttemptRepository;
@@ -49,12 +50,13 @@ public class ExerciseService {
         Lesson lesson = getLesson(lessonId, moduleId, courseId);
         Course course = lesson.getModule().getCourse();
         validateCanModify(course, currentUserId, isAdmin);
+        validateExerciseRequest(request);
 
         Exercise exercise = Exercise.builder()
                 .lesson(lesson)
                 .type(request.type())
                 .question(request.question().trim())
-                .options(trimToNull(request.options()))
+                .options(normalizeOptions(request.options()))
                 .correctAnswer(request.correctAnswer().trim())
                 .explanation(trimToNull(request.explanation()))
                 .orderIndex(request.orderIndex())
@@ -109,10 +111,11 @@ public class ExerciseService {
         Exercise exercise = getExercise(exerciseId, lessonId, moduleId, courseId);
         Course course = exercise.getLesson().getModule().getCourse();
         validateCanModify(course, currentUserId, isAdmin);
+        validateExerciseRequest(request);
 
         exercise.setType(request.type());
         exercise.setQuestion(request.question().trim());
-        exercise.setOptions(trimToNull(request.options()));
+        exercise.setOptions(normalizeOptions(request.options()));
         exercise.setCorrectAnswer(request.correctAnswer().trim());
         exercise.setExplanation(trimToNull(request.explanation()));
         exercise.setOrderIndex(request.orderIndex());
@@ -203,6 +206,20 @@ public class ExerciseService {
         }
     }
 
+    private void validateExerciseRequest(ExerciseCreateRequest request) {
+        if (request.type() == ExerciseType.MULTIPLE_CHOICE) {
+            List<String> options = normalizeOptions(request.options());
+            if (options.size() < 2) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple choice exercises require at least two options");
+            }
+            boolean containsCorrectAnswer = options.stream()
+                    .anyMatch(option -> normalizeAnswer(option).equals(normalizeAnswer(request.correctAnswer())));
+            if (!containsCorrectAnswer) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Correct answer must match one of the options");
+            }
+        }
+    }
+
     private ExerciseResponse toResponse(Exercise exercise, boolean includeAnswer) {
         return new ExerciseResponse(
                 exercise.getId(),
@@ -222,6 +239,17 @@ public class ExerciseService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private List<String> normalizeOptions(List<String> options) {
+        if (options == null) {
+            return List.of();
+        }
+        return options.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(option -> !option.isEmpty())
+                .toList();
     }
 
     private String normalizeAnswer(String value) {
