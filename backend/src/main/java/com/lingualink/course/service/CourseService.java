@@ -1,6 +1,7 @@
 package com.lingualink.course.service;
 
 import com.lingualink.common.exception.AppException;
+import com.lingualink.common.storage.LocalFileStorageService;
 import com.lingualink.course.dto.CourseCreateRequest;
 import com.lingualink.course.dto.CourseResponse;
 import com.lingualink.course.dto.CourseSummaryResponse;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -35,6 +37,7 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final CourseMapper courseMapper;
+    private final LocalFileStorageService localFileStorageService;
 
     @Transactional
     public CourseResponse createCourse(CourseCreateRequest request, Long creatorId) {
@@ -199,6 +202,21 @@ public class CourseService {
     public Page<CourseResponse> getPendingReviewCourses(Pageable pageable) {
         return courseRepository.findByStatus(CourseStatus.PENDING_REVIEW, pageable)
                 .map(this::enrichWithCreatorInfo);
+    }
+
+    @Transactional
+    public CourseResponse uploadCoverImage(Long id, Long currentUserId, boolean isAdmin, MultipartFile file) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new AppException("Course not found with id: " + id));
+
+        if (!canModifyCourse(course, currentUserId, isAdmin)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to modify this course");
+        }
+
+        String coverImageUrl = localFileStorageService.saveImage(file, "courses");
+        course.setCoverImageUrl(coverImageUrl);
+        return enrichWithCreatorInfo(courseRepository.save(course));
     }
 
     @Transactional
