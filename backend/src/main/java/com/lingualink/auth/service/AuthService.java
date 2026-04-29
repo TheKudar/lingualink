@@ -13,9 +13,11 @@ import com.lingualink.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.Authentication;
+
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -27,14 +29,25 @@ public class AuthService {
     private final JwtService jwtService;
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        String email = normalizeEmail(request.email());
+        String username = normalizeUsername(request.username());
+        UserRole requestedRole = resolveRegistrationRole(request.role());
+
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new AppException("User with this email already exists");
         }
 
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
+            throw new AppException("User with this username already exists");
+        }
+
         User user = User.builder()
-                .email(request.email())
+                .email(email)
+                .username(username)
+                .firstName(normalizeName(request.firstName()))
+                .lastName(normalizeName(request.lastName()))
                 .password(passwordEncoder.encode(request.password()))
-                .role(UserRole.STUDENT)
+                .role(requestedRole)
                 .status(UserStatus.ACTIVE)
                 .build();
 
@@ -45,21 +58,23 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        String email = normalizeEmail(request.email());
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.email(),
+                        email,
                         request.password()
                 )
         );
 
-        String token = jwtService.generateAccessToken(request.email());
+        String token = jwtService.generateAccessToken(email);
         return new AuthResponse(token);
     }
 
     public UserMeResponse me(Authentication authentication) {
-        String email = authentication.getName();
+        String email = normalizeEmail(authentication.getName());
 
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException("User not found"));
 
         return new UserMeResponse(
@@ -68,5 +83,27 @@ public class AuthService {
                 user.getRole(),
                 user.getStatus()
         );
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeUsername(String username) {
+        return username.trim();
+    }
+
+    private String normalizeName(String value) {
+        return value.trim();
+    }
+
+    private UserRole resolveRegistrationRole(UserRole role) {
+        if (role == null) {
+            return UserRole.STUDENT;
+        }
+        if (role == UserRole.ADMIN) {
+            throw new AppException("Admin registration is not allowed");
+        }
+        return role;
     }
 }

@@ -40,16 +40,25 @@ public class Course {
     @Column(nullable = false)
     private BigDecimal price;
 
+    @Builder.Default
+    @Column(nullable = false)
     private Double rating = 0.0;
 
-    @Column(name = "reviews_count")
+    @Builder.Default
+    @Column(name = "reviews_count", nullable = false)
     private Integer reviewsCount = 0;
 
-    @Column(name = "total_students")
+    @Builder.Default
+    @Column(name = "total_students", nullable = false)
     private Integer totalStudents = 0;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private CourseStatus status = CourseStatus.DRAFT;
+
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

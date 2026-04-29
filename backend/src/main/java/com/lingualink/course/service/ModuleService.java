@@ -4,7 +4,6 @@ import com.lingualink.common.exception.AppException;
 import com.lingualink.course.dto.ModuleCreateRequest;
 import com.lingualink.course.dto.ModuleResponse;
 import com.lingualink.course.entity.Course;
-import com.lingualink.course.entity.CourseStatus;
 import com.lingualink.course.entity.Module;
 import com.lingualink.course.mapper.ModuleMapper;
 import com.lingualink.course.repository.CourseRepository;
@@ -15,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -27,13 +27,13 @@ public class ModuleService {
     private final ModuleRepository moduleRepository;
     private final CourseRepository courseRepository;
     private final ModuleMapper moduleMapper;
+    private final CourseAccessService courseAccessService;
 
     @Transactional
     public ModuleResponse createModule(Long courseId, ModuleCreateRequest request, Long currentUserId, boolean isAdmin) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new AppException("Course not found with id: " + courseId));
 
-        // Проверка прав: только создатель курса или админ
         if (!isAdmin && !Objects.equals(course.getCreatorId(), currentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to modify this course");
         }
@@ -46,7 +46,7 @@ public class ModuleService {
                 .build();
 
         Module saved = moduleRepository.save(module);
-        log.info("com.lingualink.course.entity.Module created with id: {} for course: {}", saved.getId(), courseId);
+        log.info("Module created with id: {} for course: {}", saved.getId(), courseId);
 
         return moduleMapper.toResponse(saved);
     }
@@ -55,10 +55,7 @@ public class ModuleService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new AppException("Course not found with id: " + courseId));
 
-        // Проверка доступа к курсу
-        if (!canAccessCourse(course, currentUserId, isAdmin)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have access to this course");
-        }
+        courseAccessService.validateCourseContentAccess(course, currentUserId, isAdmin);
 
         List<Module> modules = moduleRepository.findByCourseIdWithLessons(courseId);
         return modules.stream()
@@ -67,10 +64,15 @@ public class ModuleService {
     }
 
     @Transactional
-    public ModuleResponse updateModule(Long courseId, Long moduleId, ModuleCreateRequest request,
-                                       Long currentUserId, boolean isAdmin) {
+    public ModuleResponse updateModule(
+            Long courseId,
+            Long moduleId,
+            ModuleCreateRequest request,
+            Long currentUserId,
+            boolean isAdmin
+    ) {
         Module module = moduleRepository.findByIdAndCourseId(moduleId, courseId)
-                .orElseThrow(() -> new AppException("com.lingualink.course.entity.Module not found with id: " + moduleId + " for course: " + courseId));
+                .orElseThrow(() -> new AppException("Module not found with id: " + moduleId + " for course: " + courseId));
 
         Course course = module.getCourse();
         if (!isAdmin && !Objects.equals(course.getCreatorId(), currentUserId)) {
@@ -94,7 +96,7 @@ public class ModuleService {
     @Transactional
     public void deleteModule(Long courseId, Long moduleId, Long currentUserId, boolean isAdmin) {
         Module module = moduleRepository.findByIdAndCourseId(moduleId, courseId)
-                .orElseThrow(() -> new AppException("com.lingualink.course.entity.Module not found with id: " + moduleId + " for course: " + courseId));
+                .orElseThrow(() -> new AppException("Module not found with id: " + moduleId + " for course: " + courseId));
 
         Course course = module.getCourse();
         if (!isAdmin && !Objects.equals(course.getCreatorId(), currentUserId)) {
@@ -102,12 +104,6 @@ public class ModuleService {
         }
 
         moduleRepository.delete(module);
-        log.info("com.lingualink.course.entity.Module deleted with id: {} from course: {}", moduleId, courseId);
-    }
-
-    private boolean canAccessCourse(Course course, Long userId, boolean isAdmin) {
-        if (isAdmin) return true;
-        if (Objects.equals(course.getCreatorId(), userId)) return true;
-        return course.getStatus() == CourseStatus.PUBLISHED;
+        log.info("Module deleted with id: {} from course: {}", moduleId, courseId);
     }
 }

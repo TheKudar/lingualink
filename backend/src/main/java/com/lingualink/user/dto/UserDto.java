@@ -1,7 +1,9 @@
 package com.lingualink.user.dto;
 
 import com.lingualink.user.entity.UserRole;
-import lombok.*;
+import com.lingualink.user.entity.UserStatus;
+import lombok.Builder;
+import lombok.Data;
 
 import java.time.LocalDateTime;
 
@@ -13,7 +15,9 @@ public class UserDto {
     private String email;
     private String firstName;
     private String lastName;
-    private String role;
+    private UserRole role;
+    private UserStatus status;
     private String avatarUrl;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

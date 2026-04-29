@@ -22,6 +22,7 @@ public class CourseResponse {
     private Integer totalStudents;
     private String coverImageUrl;
     private CourseStatus status;
+    private String rejectionReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -90,6 +91,9 @@ public class CourseResponse {
 
     public CourseStatus getStatus() { return status; }
     public void setStatus(CourseStatus status) { this.status = status; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

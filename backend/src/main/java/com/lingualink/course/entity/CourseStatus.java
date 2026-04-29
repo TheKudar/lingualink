@@ -2,7 +2,8 @@ package com.lingualink.course.entity;
 
 public enum CourseStatus {
     DRAFT,
-    PENDING,
+    PENDING_REVIEW,
     PUBLISHED,
+    REJECTED,
     ARCHIVED
 }

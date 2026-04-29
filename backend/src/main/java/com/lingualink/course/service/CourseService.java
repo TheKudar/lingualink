@@ -65,6 +65,7 @@ public class CourseService {
                 .price(request.price() != null ? request.price() : BigDecimal.ZERO)
                 .coverImageUrl(request.coverImageUrl())
                 .status(CourseStatus.DRAFT)
+                .rejectionReason(null)
                 .rating(0.0)
                 .reviewsCount(0)
                 .totalStudents(0)
@@ -133,10 +134,14 @@ public class CourseService {
         if (request.getStatus() != null) {
             if (isAdmin) {
                 course.setStatus(request.getStatus());
+                if (request.getStatus() != CourseStatus.REJECTED) {
+                    course.setRejectionReason(null);
+                }
             } else if (Objects.equals(course.getCreatorId(), currentUserId)) {
-                if (course.getStatus() == CourseStatus.DRAFT &&
-                        request.getStatus() == CourseStatus.PENDING) {
-                    course.setStatus(CourseStatus.PENDING);
+                if ((course.getStatus() == CourseStatus.DRAFT || course.getStatus() == CourseStatus.REJECTED) &&
+                        request.getStatus() == CourseStatus.PENDING_REVIEW) {
+                    course.setStatus(CourseStatus.PENDING_REVIEW);
+                    course.setRejectionReason(null);
                 } else if (request.getStatus() == CourseStatus.ARCHIVED &&
                         (course.getStatus() == CourseStatus.PUBLISHED ||
                                 course.getStatus() == CourseStatus.DRAFT)) {
@@ -189,6 +194,33 @@ public class CourseService {
     public Page<CourseSummaryResponse> getCreatorCourses(Long creatorId, Pageable pageable) {
         return courseRepository.findByCreatorId(creatorId, pageable)
                 .map(this::toSummaryResponse);
+    }
+
+    public Page<CourseResponse> getPendingReviewCourses(Pageable pageable) {
+        return courseRepository.findByStatus(CourseStatus.PENDING_REVIEW, pageable)
+                .map(this::enrichWithCreatorInfo);
+    }
+
+    @Transactional
+    public CourseResponse approveCourse(Long id) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new AppException("Course not found with id: " + id));
+
+        course.setStatus(CourseStatus.PUBLISHED);
+        course.setRejectionReason(null);
+
+        return enrichWithCreatorInfo(courseRepository.save(course));
+    }
+
+    @Transactional
+    public CourseResponse rejectCourse(Long id, String reason) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new AppException("Course not found with id: " + id));
+
+        course.setStatus(CourseStatus.REJECTED);
+        course.setRejectionReason(reason.trim());
+
+        return enrichWithCreatorInfo(courseRepository.save(course));
     }
 
     @Transactional
