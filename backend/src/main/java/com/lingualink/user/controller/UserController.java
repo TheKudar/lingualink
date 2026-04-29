@@ -1,5 +1,6 @@
 package com.lingualink.user.controller;
 
+import com.lingualink.user.dto.ChatUserSearchResponse;
 import com.lingualink.user.dto.PublicUserProfileResponse;
 import com.lingualink.user.dto.UserDto;
 import com.lingualink.user.dto.UserManagementUpdateRequest;
@@ -7,8 +8,12 @@ import com.lingualink.user.dto.UserUpdateRequest;
 import com.lingualink.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,6 +34,19 @@ public class UserController {
     @PutMapping("/me")
     public ResponseEntity<UserDto> replaceCurrentUser(@Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(userService.update(request));
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserDto> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.uploadAvatar(file));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ChatUserSearchResponse>> searchUsersForChat(
+            @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "true") boolean excludeCurrentUser
+    ) {
+        return ResponseEntity.ok(userService.searchUsersForChat(query, excludeCurrentUser));
     }
 
     @GetMapping("/{id}")

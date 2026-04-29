@@ -25,10 +25,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -70,6 +72,17 @@ public class CourseController {
         Long currentUserId = getCurrentUserId(currentUser);
         boolean isAdmin = isAdmin(currentUser);
         CourseResponse response = courseService.updateCourse(id, request, currentUserId, isAdmin);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/{id}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CourseResponse> uploadCourseCover(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Long currentUserId = getCurrentUserId(currentUser);
+        boolean isAdmin = isAdmin(currentUser);
+        CourseResponse response = courseService.uploadCoverImage(id, currentUserId, isAdmin, file);
         return ResponseEntity.ok(response);
     }
 
