@@ -9,4 +9,8 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByModuleIdOrderByOrderIndexAsc(Long moduleId);
 
     Optional<Lesson> findByIdAndModuleId(Long id, Long moduleId);
+
+    Optional<Lesson> findByIdAndModuleIdAndModuleCourseId(Long id, Long moduleId, Long courseId);
+
+    long countByModuleCourseId(Long courseId);
 }
