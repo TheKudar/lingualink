@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:lingualink;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+
+jwt:
+  secret: c3VwZXItc2VjcmV0LXRlc3Qtc2VjcmV0LXN1cGVyLXRlc3Qtc2VjcmV0MTIzNDU2
+  access-token-expiration: 3600000
