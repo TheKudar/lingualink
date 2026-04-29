@@ -57,6 +57,15 @@ public class UserService {
         return userMapper.toPublicProfile(getUserById(id));
     }
 
+    public List<ChatUserSearchResponse> searchUsersForChat(String query, boolean excludeCurrentUser) {
+        Long excludeUserId = excludeCurrentUser ? getAuthenticatedUser().getId() : null;
+
+        return userRepository.searchActiveUsers(normalizeSearchQuery(query), UserStatus.ACTIVE, excludeUserId)
+                .stream()
+                .map(this::toChatUserSearchResponse)
+                .toList();
+    }
+
     @Transactional
     public UserDto uploadAvatar(MultipartFile file) {
         User user = getAuthenticatedUser();
