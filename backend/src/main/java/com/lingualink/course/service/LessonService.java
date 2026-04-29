@@ -4,7 +4,6 @@ import com.lingualink.common.exception.AppException;
 import com.lingualink.course.dto.LessonCreateRequest;
 import com.lingualink.course.dto.LessonResponse;
 import com.lingualink.course.entity.Course;
-import com.lingualink.course.entity.CourseStatus;
 import com.lingualink.course.entity.Lesson;
 import com.lingualink.course.entity.Module;
 import com.lingualink.course.mapper.LessonMapper;
@@ -12,6 +11,8 @@ import com.lingualink.course.repository.LessonRepository;
 import com.lingualink.course.repository.ModuleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class LessonService {
     private final LessonRepository lessonRepository;
     private final ModuleRepository moduleRepository;
     private final LessonMapper lessonMapper;
+    private final CourseAccessService courseAccessService;
 
     @Transactional
     public LessonResponse createLesson(Long courseId, Long moduleId, LessonCreateRequest request,
@@ -42,7 +44,7 @@ public class LessonService {
 
         Lesson lesson = Lesson.builder()
                 .title(request.getTitle())
-                .content(request.getContent())
+                .content(sanitizeContent(request.getContent()))
                 .orderIndex(request.getOrderIndex())
                 .module(module)
                 .build();
@@ -55,14 +57,13 @@ public class LessonService {
 
     public LessonResponse getLesson(Long courseId, Long moduleId, Long lessonId,
                                     Long currentUserId, boolean isAdmin) {
-        Lesson lesson = lessonRepository.findByIdAndModuleId(lessonId, moduleId)
-                .orElseThrow(() -> new AppException("Lesson not found"));
+        Lesson lesson = lessonRepository.findByIdAndModuleIdAndModuleCourseId(lessonId, moduleId, courseId)
+                .orElseThrow(() -> new AppException(
+                        "Lesson not found with id: " + lessonId + " for module: " + moduleId + " and course: " + courseId
+                ));
 
         Course course = lesson.getModule().getCourse();
-        if (!isAdmin && !Objects.equals(course.getCreatorId(), currentUserId) &&
-                course.getStatus() != CourseStatus.PUBLISHED) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have access to this lesson");
-        }
+        courseAccessService.validateCourseContentAccess(course, currentUserId, isAdmin);
 
         return lessonMapper.toResponse(lesson);
     }
@@ -82,7 +83,7 @@ public class LessonService {
             lesson.setTitle(request.getTitle());
         }
         if (request.getContent() != null) {
-            lesson.setContent(request.getContent());
+            lesson.setContent(sanitizeContent(request.getContent()));
         }
         if (request.getOrderIndex() != null) {
             lesson.setOrderIndex(request.getOrderIndex());
@@ -105,5 +106,17 @@ public class LessonService {
 
         lessonRepository.delete(lesson);
         log.info("Lesson deleted with id: {} from module: {}", lessonId, moduleId);
+    }
+
+    private String sanitizeContent(String content) {
+        if (content == null) {
+            return null;
+        }
+
+        Safelist safelist = Safelist.relaxed()
+                .addProtocols("a", "href", "http", "https", "mailto")
+                .addProtocols("img", "src", "http", "https");
+
+        return Jsoup.clean(content, safelist);
     }
 }

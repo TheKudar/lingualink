@@ -2,7 +2,9 @@ package com.lingualink.course.controller;
 
 import com.lingualink.common.exception.AppException;
 import com.lingualink.course.dto.LessonCreateRequest;
+import com.lingualink.course.dto.LessonCompletionResponse;
 import com.lingualink.course.dto.LessonResponse;
+import com.lingualink.course.service.LessonProgressService;
 import com.lingualink.course.service.LessonService;
 import com.lingualink.user.entity.User;
 import com.lingualink.user.repository.UserRepository;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class LessonController {
 
     private final LessonService lessonService;
+    private final LessonProgressService lessonProgressService;
     private final UserRepository userRepository;
 
     @PostMapping
@@ -75,8 +78,21 @@ public class LessonController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{lessonId}/complete")
+    public ResponseEntity<LessonCompletionResponse> completeLesson(
+            @PathVariable Long courseId,
+            @PathVariable Long moduleId,
+            @PathVariable Long lessonId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        Long studentId = getCurrentUserId(currentUser);
+        LessonCompletionResponse response =
+                lessonProgressService.completeLesson(courseId, moduleId, lessonId, studentId);
+        return ResponseEntity.ok(response);
+    }
+
     private Long getCurrentUserId(UserDetails userDetails) {
-        User user = userRepository.findByUsername(userDetails.getUsername())
+        User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                 .orElseThrow(() -> new AppException("User not found"));
         return user.getId();
     }
