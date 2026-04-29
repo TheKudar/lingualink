@@ -1,5 +1,6 @@
 package com.lingualink.user.controller;
 
+import com.lingualink.user.dto.ChatUserSearchResponse;
 import com.lingualink.user.dto.PublicUserProfileResponse;
 import com.lingualink.user.dto.UserDto;
 import com.lingualink.user.dto.UserManagementUpdateRequest;
@@ -9,6 +10,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,6 +32,14 @@ public class UserController {
     @PutMapping("/me")
     public ResponseEntity<UserDto> replaceCurrentUser(@Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(userService.update(request));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ChatUserSearchResponse>> searchUsersForChat(
+            @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "true") boolean excludeCurrentUser
+    ) {
+        return ResponseEntity.ok(userService.searchUsersForChat(query, excludeCurrentUser));
     }
 
     @GetMapping("/{id}")

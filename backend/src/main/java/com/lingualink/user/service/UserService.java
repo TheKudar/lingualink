@@ -1,6 +1,7 @@
 package com.lingualink.user.service;
 
 import com.lingualink.common.exception.AppException;
+import com.lingualink.user.dto.ChatUserSearchResponse;
 import com.lingualink.user.dto.PublicUserProfileResponse;
 import com.lingualink.user.dto.UserDto;
 import com.lingualink.user.dto.UserManagementUpdateRequest;
@@ -16,6 +17,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +52,15 @@ public class UserService {
 
     public PublicUserProfileResponse getPublicProfile(Long id) {
         return userMapper.toPublicProfile(getUserById(id));
+    }
+
+    public List<ChatUserSearchResponse> searchUsersForChat(String query, boolean excludeCurrentUser) {
+        Long excludeUserId = excludeCurrentUser ? getAuthenticatedUser().getId() : null;
+
+        return userRepository.searchActiveUsers(normalizeSearchQuery(query), UserStatus.ACTIVE, excludeUserId)
+                .stream()
+                .map(this::toChatUserSearchResponse)
+                .toList();
     }
 
     @Transactional
@@ -96,6 +108,25 @@ public class UserService {
     private User getAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return getUserByEmail(email);
+    }
+
+    private String normalizeSearchQuery(String query) {
+        if (query == null) {
+            return null;
+        }
+        String trimmed = query.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private ChatUserSearchResponse toChatUserSearchResponse(User user) {
+        return new ChatUserSearchResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getAvatarUrl(),
+                user.getRole()
+        );
     }
 
     private void requireAdmin() {
