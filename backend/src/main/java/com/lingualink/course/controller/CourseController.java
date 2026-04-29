@@ -1,5 +1,6 @@
 package com.lingualink.course.controller;
 
+import com.lingualink.common.config.OpenApiConfig;
 import com.lingualink.common.exception.AppException;
 import com.lingualink.course.dto.CourseProgressResponse;
 import com.lingualink.course.dto.CourseCreateRequest;
@@ -18,8 +19,13 @@ import com.lingualink.course.service.CourseService;
 import com.lingualink.course.service.EnrollmentService;
 import com.lingualink.user.entity.User;
 import com.lingualink.user.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -38,6 +44,8 @@ import java.math.BigDecimal;
 @RestController
 @RequestMapping("/api/courses")
 @RequiredArgsConstructor
+@Tag(name = "Courses")
+@SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class CourseController {
 
     private final CourseService courseService;
@@ -46,18 +54,20 @@ public class CourseController {
     private final UserRepository userRepository;
 
     @PostMapping
+    @Operation(summary = "Create a course", description = "Creates a new course owned by the authenticated user.")
     public ResponseEntity<CourseResponse> createCourse(
             @Valid @RequestBody CourseCreateRequest request,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         Long creatorId = getCurrentUserId(currentUser);
         CourseResponse response = courseService.createCourse(request, creatorId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get a course", description = "Returns course details when the authenticated user has access.")
     public ResponseEntity<CourseResponse> getCourse(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         Long currentUserId = getCurrentUserId(currentUser);
         boolean isAdmin = isAdmin(currentUser);
         CourseResponse response = courseService.getCourseById(id, currentUserId, isAdmin);
@@ -65,10 +75,11 @@ public class CourseController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update a course", description = "Updates course metadata for the course owner or an admin.")
     public ResponseEntity<CourseResponse> updateCourse(
             @PathVariable Long id,
             @Valid @RequestBody CourseUpdateRequest request,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         Long currentUserId = getCurrentUserId(currentUser);
         boolean isAdmin = isAdmin(currentUser);
         CourseResponse response = courseService.updateCourse(id, request, currentUserId, isAdmin);
@@ -76,10 +87,11 @@ public class CourseController {
     }
 
     @PostMapping(value = "/{id}/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload a course cover", description = "Uploads or replaces a course cover image for the owner or an admin.")
     public ResponseEntity<CourseResponse> uploadCourseCover(
             @PathVariable Long id,
-            @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(description = "Cover image file") @RequestParam("file") MultipartFile file,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         Long currentUserId = getCurrentUserId(currentUser);
         boolean isAdmin = isAdmin(currentUser);
         CourseResponse response = courseService.uploadCoverImage(id, currentUserId, isAdmin, file);
@@ -87,9 +99,10 @@ public class CourseController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a course", description = "Deletes a course for the owner or an admin.")
     public ResponseEntity<Void> deleteCourse(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         Long currentUserId = getCurrentUserId(currentUser);
         boolean isAdmin = isAdmin(currentUser);
         courseService.deleteCourse(id, currentUserId, isAdmin);
@@ -97,6 +110,7 @@ public class CourseController {
     }
 
     @GetMapping("/published")
+    @Operation(summary = "List published courses", description = "Searches and filters published courses with pagination.")
     public ResponseEntity<Page<CourseSummaryResponse>> getPublishedCourses(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) CourseLanguage language,
@@ -104,7 +118,7 @@ public class CourseController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) Double minRating,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<CourseSummaryResponse> courses = courseService.getPublishedCourses(
                 keyword, language, level, minPrice, maxPrice, minRating, pageable);
@@ -112,18 +126,20 @@ public class CourseController {
     }
 
     @GetMapping("/creator/{creatorId}")
+    @Operation(summary = "List creator courses", description = "Returns courses created by the selected creator.")
     public ResponseEntity<Page<CourseSummaryResponse>> getCreatorCourses(
             @PathVariable Long creatorId,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<CourseSummaryResponse> courses = courseService.getCreatorCourses(creatorId, pageable);
         return ResponseEntity.ok(courses);
     }
 
     @GetMapping("/my-courses")
+    @Operation(summary = "List my created courses", description = "Returns courses created by the authenticated user.")
     public ResponseEntity<Page<CourseSummaryResponse>> getMyCreatedCourses(
-            @AuthenticationPrincipal UserDetails currentUser,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser,
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Long creatorId = getCurrentUserId(currentUser);
         Page<CourseSummaryResponse> courses = courseService.getCreatorCourses(creatorId, pageable);
@@ -131,44 +147,49 @@ public class CourseController {
     }
 
     @GetMapping("/moderation/pending")
+    @Operation(summary = "List pending courses", description = "Admin-only endpoint for courses awaiting moderation.")
     public ResponseEntity<Page<CourseResponse>> getPendingReviewCourses(
-            @AuthenticationPrincipal UserDetails currentUser,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser,
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
 
         requireAdmin(currentUser);
         return ResponseEntity.ok(courseService.getPendingReviewCourses(pageable));
     }
 
     @PostMapping("/{id}/enroll")
+    @Operation(summary = "Enroll in a course", description = "Enrolls the authenticated user as a student in the course.")
     public ResponseEntity<EnrolledCourseResponse> enrollInCourse(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         Long studentId = getCurrentUserId(currentUser);
         EnrolledCourseResponse response = enrollmentService.enrollInCourse(id, studentId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/my-enrollments")
+    @Operation(summary = "List my enrollments", description = "Returns courses the authenticated user is enrolled in.")
     public ResponseEntity<Page<EnrolledCourseResponse>> getMyEnrollments(
-            @AuthenticationPrincipal UserDetails currentUser,
-            @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser,
+            @ParameterObject @PageableDefault(size = 20, sort = "enrolledAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Long studentId = getCurrentUserId(currentUser);
         return ResponseEntity.ok(enrollmentService.getMyCourses(studentId, pageable));
     }
 
     @GetMapping("/{id}/progress")
+    @Operation(summary = "Get course progress", description = "Returns progress for the authenticated student's enrollment.")
     public ResponseEntity<CourseProgressResponse> getCourseProgress(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         Long studentId = getCurrentUserId(currentUser);
         return ResponseEntity.ok(enrollmentService.getCourseProgress(id, studentId));
     }
 
     @PostMapping("/{id}/submit-for-review")
+    @Operation(summary = "Submit a course for review", description = "Moves a course into pending moderation review.")
     public ResponseEntity<CourseResponse> submitForReview(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
 
         Long currentUserId = getCurrentUserId(currentUser);
         CourseUpdateRequest request = CourseUpdateRequest.builder()
@@ -181,28 +202,31 @@ public class CourseController {
     }
 
     @PostMapping("/{id}/approve")
+    @Operation(summary = "Approve a course", description = "Admin-only endpoint that publishes a reviewed course.")
     public ResponseEntity<CourseResponse> approveCourse(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
 
         requireAdmin(currentUser);
         return ResponseEntity.ok(courseService.approveCourse(id));
     }
 
     @PostMapping("/{id}/reject")
+    @Operation(summary = "Reject a course", description = "Admin-only endpoint that rejects a course with a moderation reason.")
     public ResponseEntity<CourseResponse> rejectCourse(
             @PathVariable Long id,
             @Valid @RequestBody CourseRejectRequest request,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
 
         requireAdmin(currentUser);
         return ResponseEntity.ok(courseService.rejectCourse(id, request.reason()));
     }
 
     @PostMapping("/{id}/archive")
+    @Operation(summary = "Archive a course", description = "Archives a course for the owner or an admin.")
     public ResponseEntity<CourseResponse> archiveCourse(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
 
         Long currentUserId = getCurrentUserId(currentUser);
         boolean isAdmin = isAdmin(currentUser);
@@ -216,10 +240,11 @@ public class CourseController {
     }
 
     @PostMapping("/{id}/reviews")
+    @Operation(summary = "Create a course review", description = "Creates a review for a course the authenticated student can review.")
     public ResponseEntity<CourseReviewResponse> createReview(
             @PathVariable Long id,
             @Valid @RequestBody CourseReviewCreateRequest request,
-            @AuthenticationPrincipal UserDetails currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
 
         Long studentId = getCurrentUserId(currentUser);
         CourseReviewResponse response = courseReviewService.createReview(id, studentId, request);
@@ -227,10 +252,11 @@ public class CourseController {
     }
 
     @GetMapping("/{id}/reviews")
+    @Operation(summary = "List course reviews", description = "Returns visible reviews for a course with pagination.")
     public ResponseEntity<Page<CourseReviewResponse>> getCourseReviews(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser,
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Long currentUserId = getCurrentUserId(currentUser);
         boolean isAdmin = isAdmin(currentUser);
