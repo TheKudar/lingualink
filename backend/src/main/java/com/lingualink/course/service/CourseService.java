@@ -188,8 +188,9 @@ public class CourseService {
                                                            BigDecimal maxPrice,
                                                            Double minRating,
                                                            Pageable pageable) {
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
         Page<Course> courses = courseRepository.findPublishedCourses(
-                keyword, language, level, minPrice, maxPrice, minRating, pageable);
+                normalizedKeyword, language, level, minPrice, maxPrice, minRating, pageable);
 
         return courses.map(this::toSummaryResponse);
     }
