@@ -171,6 +171,18 @@ class CourseEngagementFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PUBLISHED"));
 
+        mockMvc.perform(get("/api/courses/published")
+                        .param("page", "0")
+                        .param("size", "3")
+                        .param("sort", "totalStudents,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(courseId));
+
+        mockMvc.perform(get("/api/courses/my-enrollments")
+                        .param("page", "0")
+                        .param("size", "6"))
+                .andExpect(status().isUnauthorized());
+
         mockMvc.perform(get("/api/courses/{courseId}/modules", courseId)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isForbidden())

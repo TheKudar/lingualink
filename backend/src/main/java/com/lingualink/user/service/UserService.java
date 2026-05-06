@@ -74,15 +74,6 @@ public class UserService {
         return userMapper.toDto(userRepository.save(user));
     }
 
-    public List<ChatUserSearchResponse> searchUsersForChat(String query, boolean excludeCurrentUser) {
-        Long excludeUserId = excludeCurrentUser ? getAuthenticatedUser().getId() : null;
-
-        return userRepository.searchActiveUsers(normalizeSearchQuery(query), UserStatus.ACTIVE, excludeUserId)
-                .stream()
-                .map(this::toChatUserSearchResponse)
-                .toList();
-    }
-
     @Transactional
     public UserDto updateUserManagement(Long id, UserManagementUpdateRequest request) {
         requireAdmin();

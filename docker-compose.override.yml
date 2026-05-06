@@ -8,6 +8,7 @@ services:
     depends_on:
       - postgres
     environment:
+      JWT_SECRET: bXlTdXBlclNlY3JldEtleUZvckpXVDI1NmJpdHNMb25nU2VjdXJlS2V5Rm9yU3ByaW5nQm9vdEFwcA==
       SPRING_PROFILES_ACTIVE: docker
     ports:
       - "8080:8080"

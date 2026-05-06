@@ -10,21 +10,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
 
-    // Существующие методы...
     List<Course> findByCreatorId(Long creatorId);
     Page<Course> findByCreatorId(Long creatorId, Pageable pageable);
 
-    // Новый метод для проверки уникальности
     boolean existsByTitleAndCreatorId(String title, Long creatorId);
 
     @Query("SELECT c FROM Course c WHERE c.status = 'PUBLISHED' " +
-            "AND (:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "AND (:keyword = '' OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND (:language IS NULL OR c.language = :language) " +
             "AND (:level IS NULL OR c.level = :level) " +
