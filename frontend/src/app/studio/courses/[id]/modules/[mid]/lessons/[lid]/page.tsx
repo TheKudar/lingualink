@@ -18,8 +18,7 @@ import type { ExerciseCreateRequest, ExerciseType } from "@/types/api";
 
 const TYPES: { value: ExerciseType; label: string }[] = [
   { value: "MULTIPLE_CHOICE", label: "Множественный выбор" },
-  { value: "SHORT_ANSWER", label: "Короткий ответ" },
-  { value: "FILL_IN_THE_BLANK", label: "Заполнить пропуск" },
+  { value: "TEXT_INPUT", label: "Текстовый ответ" },
 ];
 
 export default function LessonEditorPage() {

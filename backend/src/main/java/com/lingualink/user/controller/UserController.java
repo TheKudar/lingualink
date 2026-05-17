@@ -1,6 +1,8 @@
 package com.lingualink.user.controller;
 
 import com.lingualink.common.config.OpenApiConfig;
+import com.lingualink.course.entity.CourseLanguage;
+import com.lingualink.course.entity.CourseLevel;
 import com.lingualink.user.dto.ChatUserSearchResponse;
 import com.lingualink.user.dto.PublicUserProfileResponse;
 import com.lingualink.user.dto.UserDto;
@@ -55,9 +57,11 @@ public class UserController {
     @Operation(summary = "Search users for chat", description = "Finds users that can be selected as chat participants.")
     public ResponseEntity<List<ChatUserSearchResponse>> searchUsersForChat(
             @RequestParam(required = false) String query,
+            @RequestParam(required = false) CourseLanguage language,
+            @RequestParam(required = false) CourseLevel level,
             @RequestParam(defaultValue = "true") boolean excludeCurrentUser
     ) {
-        return ResponseEntity.ok(userService.searchUsersForChat(query, excludeCurrentUser));
+        return ResponseEntity.ok(userService.searchUsersForChat(query, language, level, excludeCurrentUser));
     }
 
     @GetMapping("/{id}")

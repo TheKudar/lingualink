@@ -15,9 +15,11 @@ services:
     volumes:
       - ./backend:/app
       - maven_cache:/root/.m2
+      - target_cache:/app/target   # 🔥 ключевое исправление
     working_dir: /app
     command: ./mvnw spring-boot:run -Dspring-boot.run.profiles=docker
 
 volumes:
   postgres_data:
   maven_cache:
+  target_cache:

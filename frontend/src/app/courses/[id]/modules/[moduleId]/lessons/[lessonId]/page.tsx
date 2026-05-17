@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { courseService } from "@/services/courseService";
@@ -12,6 +12,7 @@ export default function LessonPage() {
   const courseId = Number(params.id);
   const moduleId = Number(params.moduleId);
   const lessonId = Number(params.lessonId);
+  const queryClient = useQueryClient();
 
   const courseQuery = useQuery({
     queryKey: ["course", courseId],
@@ -28,7 +29,15 @@ export default function LessonPage() {
 
   const completeMutation = useMutation({
     mutationFn: () => courseService.completeLesson(courseId, moduleId, lessonId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lesson", lessonId] });
+      queryClient.invalidateQueries({ queryKey: ["course", courseId, "progress"] });
+      queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
+    },
   });
+
+  const lessonCompleted =
+    lessonQuery.data?.completed === true || completeMutation.data?.completed === true;
 
   return (
     <>
@@ -62,14 +71,19 @@ export default function LessonPage() {
             <Button
               variant="success"
               onClick={() => completeMutation.mutate()}
-              disabled={completeMutation.isPending || completeMutation.isSuccess}
+              disabled={completeMutation.isPending || lessonCompleted}
             >
-              {completeMutation.isSuccess
+              {lessonCompleted
                 ? "Урок отмечен пройденным"
                 : completeMutation.isPending
                 ? "Сохранение..."
                 : "Отметить как пройденный"}
             </Button>
+            {completeMutation.data && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Прогресс курса: {completeMutation.data.progressPercentage}%
+              </p>
+            )}
           </div>
         </article>
       </main>

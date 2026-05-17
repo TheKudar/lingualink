@@ -2,15 +2,26 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Search, Send, UserPlus, X } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import { chatService } from "@/services/chatService";
+import { userService } from "@/services/userService";
 import { useAuthStore } from "@/lib/auth-store";
 import { resolveAssetUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import {
+  LANGUAGE_LABELS,
+  type ChatUserSearchResponse,
+  type CourseLanguage,
+  type CourseLevel,
+} from "@/types/api";
+
+const LEVELS: CourseLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
+const LANGUAGES = Object.entries(LANGUAGE_LABELS) as [CourseLanguage, string][];
 
 export default function ChatPage() {
   const router = useRouter();
@@ -18,6 +29,9 @@ export default function ChatPage() {
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<number | null>(null);
   const [input, setInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [language, setLanguage] = useState<CourseLanguage | "">("");
+  const [level, setLevel] = useState<CourseLevel | "">("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,11 +44,30 @@ export default function ChatPage() {
     enabled: !!user,
   });
 
+  const usersQuery = useQuery({
+    queryKey: ["chat-users", { search, language, level }],
+    queryFn: () =>
+      userService.search({
+        query: search.trim() || undefined,
+        language: language || undefined,
+        level: level || undefined,
+      }),
+    enabled: !!user,
+  });
+
   const messagesQuery = useQuery({
     queryKey: ["messages", activeId],
     queryFn: () => chatService.listMessages(activeId!),
     enabled: activeId != null,
     refetchInterval: 5000,
+  });
+
+  const createConversationMutation = useMutation({
+    mutationFn: (participantId: number) => chatService.createConversation(participantId),
+    onSuccess: (conversation) => {
+      setActiveId(conversation.id);
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
   });
 
   const sendMutation = useMutation({
@@ -50,10 +83,36 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messagesQuery.data]);
 
-  const activeConv = useMemo(
-    () => conversationsQuery.data?.find((c) => c.id === activeId) ?? null,
-    [conversationsQuery.data, activeId]
-  );
+  const activeConv = useMemo(() => {
+    const existing = conversationsQuery.data?.find((c) => c.id === activeId) ?? null;
+    if (existing) return existing;
+    const created = createConversationMutation.data;
+    return created?.id === activeId ? created : null;
+  }, [conversationsQuery.data, createConversationMutation.data, activeId]);
+
+  const conversationByUserId = useMemo(() => {
+    return new Map(
+      conversationsQuery.data?.map((conversation) => [
+        conversation.participantId,
+        conversation.id,
+      ]) ?? []
+    );
+  }, [conversationsQuery.data]);
+
+  const startConversation = (participant: ChatUserSearchResponse) => {
+    const existingConversationId = conversationByUserId.get(participant.id);
+    if (existingConversationId) {
+      setActiveId(existingConversationId);
+      return;
+    }
+    createConversationMutation.mutate(participant.id);
+  };
+
+  const resetFilters = () => {
+    setSearch("");
+    setLanguage("");
+    setLevel("");
+  };
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,11 +126,10 @@ export default function ChatPage() {
     <>
       <Navbar />
       <main className="mx-auto max-w-7xl px-6 py-6">
-        <div className="grid grid-cols-[260px_1fr] gap-6">
-          {/* Sidebar */}
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
           <aside className="flex flex-col gap-4">
-            <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
-              <div className="bg-primary text-white px-4 py-2 text-center font-medium">
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+              <div className="bg-primary px-4 py-2 text-center font-medium text-white">
                 Чаты
               </div>
               <ul className="divide-y divide-border">
@@ -83,6 +141,7 @@ export default function ChatPage() {
                 {conversationsQuery.data?.map((c) => (
                   <li key={c.id}>
                     <button
+                      type="button"
                       onClick={() => setActiveId(c.id)}
                       className={cn(
                         "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
@@ -97,29 +156,128 @@ export default function ChatPage() {
                           {c.participantFirstName[0] ?? "?"}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{c.participantFirstName}</span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{c.participantFirstName}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          @{c.participantUsername}
+                        </p>
+                      </div>
                     </button>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
-              <div className="bg-primary text-white px-4 py-2 text-center font-medium">
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+              <div className="bg-primary px-4 py-2 text-center font-medium text-white">
                 Фильтр
               </div>
-              <button className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-muted/50">
-                <span>Язык</span> <span>→</span>
-              </button>
-              <button className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-muted/50 border-t border-border">
-                <span>Уровень языка</span> <span>→</span>
-              </button>
-              <Button className="w-full rounded-none">Применить фильтры</Button>
+              <div className="space-y-3 p-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Имя или логин"
+                    className="h-11 w-full rounded-xl bg-input-soft pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <NativeSelect
+                  aria-label="Язык"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as CourseLanguage | "")}
+                  className="h-11 text-sm"
+                >
+                  <option value="">Любой язык</option>
+                  {LANGUAGES.map(([code, label]) => (
+                    <option key={code} value={code}>
+                      {label}
+                    </option>
+                  ))}
+                </NativeSelect>
+
+                <NativeSelect
+                  aria-label="Уровень языка"
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value as CourseLevel | "")}
+                  className="h-11 text-sm"
+                >
+                  <option value="">Любой уровень</option>
+                  {LEVELS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </NativeSelect>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => usersQuery.refetch()}
+                  >
+                    Применить
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={resetFilters}
+                    aria-label="Сбросить фильтры"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <ul className="max-h-80 divide-y divide-border overflow-y-auto border-t border-border">
+                {usersQuery.isLoading && (
+                  <li className="px-4 py-3 text-sm text-muted-foreground">Загрузка...</li>
+                )}
+                {usersQuery.data?.length === 0 && (
+                  <li className="px-4 py-3 text-sm text-muted-foreground">
+                    Пользователи не найдены
+                  </li>
+                )}
+                {usersQuery.data?.map((person) => {
+                  const existingConversationId = conversationByUserId.get(person.id);
+                  return (
+                    <li key={person.id}>
+                      <button
+                        type="button"
+                        onClick={() => startConversation(person)}
+                        disabled={createConversationMutation.isPending}
+                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={resolveAssetUrl(person.avatarUrl) ?? undefined} />
+                          <AvatarFallback>{person.firstName[0] ?? "?"}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">
+                            {person.firstName} {person.lastName}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            @{person.username}
+                          </p>
+                        </div>
+                        {existingConversationId ? (
+                          <span className="text-xs font-medium text-primary">Открыть</span>
+                        ) : (
+                          <UserPlus className="h-4 w-4 text-primary" />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           </aside>
 
-          {/* Conversation */}
-          <section className="rounded-2xl bg-white shadow-sm flex flex-col min-h-[600px]">
+          <section className="flex min-h-[600px] flex-col rounded-2xl bg-white shadow-sm">
             {activeConv ? (
               <>
                 <header className="flex items-center gap-3 border-b border-border px-5 py-3">
@@ -131,22 +289,19 @@ export default function ChatPage() {
                   </Avatar>
                   <div>
                     <p className="text-lg font-semibold leading-tight">
-                      {activeConv.participantFirstName}
+                      {activeConv.participantFirstName} {activeConv.participantLastName}
                     </p>
-                    <p className="text-sm text-success">в сети</p>
+                    <p className="text-sm text-success">@{activeConv.participantUsername}</p>
                   </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto bg-input-soft/40 p-6 space-y-3">
+                <div className="flex-1 space-y-3 overflow-y-auto bg-input-soft/40 p-6">
                   {messagesQuery.data?.content.map((m) => {
                     const mine = m.senderId === user.id;
                     return (
                       <div
                         key={m.id}
-                        className={cn(
-                          "flex",
-                          mine ? "justify-end" : "justify-start"
-                        )}
+                        className={cn("flex", mine ? "justify-end" : "justify-start")}
                       >
                         <div
                           className={cn(
@@ -164,22 +319,25 @@ export default function ChatPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-4">
+                <form
+                  onSubmit={send}
+                  className="flex items-center gap-2 border-t border-border p-4"
+                >
                   <input
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Введите сообщение..."
-                    className="h-12 flex-1 rounded-xl bg-white ring-1 ring-border px-4 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="h-12 flex-1 rounded-xl bg-white px-4 text-base ring-1 ring-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <Button type="submit" size="icon" disabled={!input.trim()}>
+                  <Button type="submit" size="icon" disabled={!input.trim() || sendMutation.isPending}>
                     <Send className="h-5 w-5" />
                   </Button>
                 </form>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-2xl text-muted-foreground">
-                Начните чат!
+              <div className="flex flex-1 items-center justify-center px-6 text-center text-2xl text-muted-foreground">
+                Выберите диалог или найдите собеседника через фильтры
               </div>
             )}
           </section>

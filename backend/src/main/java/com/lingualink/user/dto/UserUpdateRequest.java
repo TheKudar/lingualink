@@ -1,5 +1,7 @@
 package com.lingualink.user.dto;
 
+import com.lingualink.course.entity.CourseLanguage;
+import com.lingualink.course.entity.CourseLevel;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -12,4 +14,10 @@ public class UserUpdateRequest {
     private String lastName;
 
     private String avatarUrl;
+
+    private CourseLanguage nativeLanguage;
+
+    private CourseLanguage targetLanguage;
+
+    private CourseLevel level;
 }

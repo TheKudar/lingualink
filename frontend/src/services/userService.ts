@@ -1,10 +1,18 @@
 import { api } from "@/lib/api";
 import type {
   ChatUserSearchResponse,
+  CourseLanguage,
+  CourseLevel,
   PublicUserProfileResponse,
   UserDto,
   UserUpdateRequest,
 } from "@/types/api";
+
+interface UserSearchParams {
+  query?: string;
+  language?: CourseLanguage;
+  level?: CourseLevel;
+}
 
 export const userService = {
   getMe: async (): Promise<UserDto> => (await api.get<UserDto>("/api/users/me")).data,
@@ -22,10 +30,10 @@ export const userService = {
     ).data;
   },
 
-  search: async (query: string): Promise<ChatUserSearchResponse[]> =>
+  search: async (params: UserSearchParams = {}): Promise<ChatUserSearchResponse[]> =>
     (
       await api.get<ChatUserSearchResponse[]>("/api/users/search", {
-        params: { query, excludeCurrentUser: true },
+        params: { ...params, excludeCurrentUser: true },
       })
     ).data,
 

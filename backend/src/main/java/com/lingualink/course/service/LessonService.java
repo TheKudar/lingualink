@@ -5,8 +5,10 @@ import com.lingualink.course.dto.LessonCreateRequest;
 import com.lingualink.course.dto.LessonResponse;
 import com.lingualink.course.entity.Course;
 import com.lingualink.course.entity.Lesson;
+import com.lingualink.course.entity.LessonProgress;
 import com.lingualink.course.entity.Module;
 import com.lingualink.course.mapper.LessonMapper;
+import com.lingualink.course.repository.LessonProgressRepository;
 import com.lingualink.course.repository.LessonRepository;
 import com.lingualink.course.repository.ModuleRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class LessonService {
 
     private final LessonRepository lessonRepository;
     private final ModuleRepository moduleRepository;
+    private final LessonProgressRepository lessonProgressRepository;
     private final LessonMapper lessonMapper;
     private final CourseAccessService courseAccessService;
 
@@ -65,7 +68,7 @@ public class LessonService {
         Course course = lesson.getModule().getCourse();
         courseAccessService.validateCourseContentAccess(course, currentUserId, isAdmin);
 
-        return lessonMapper.toResponse(lesson);
+        return toResponseWithProgress(lesson, currentUserId);
     }
 
     @Transactional
@@ -118,5 +121,20 @@ public class LessonService {
                 .addProtocols("img", "src", "http", "https");
 
         return Jsoup.clean(content, safelist);
+    }
+
+    private LessonResponse toResponseWithProgress(Lesson lesson, Long currentUserId) {
+        LessonResponse response = lessonMapper.toResponse(lesson);
+        lessonProgressRepository.findByStudentIdAndLessonId(currentUserId, lesson.getId())
+                .ifPresentOrElse(
+                        progress -> applyProgress(response, progress),
+                        () -> response.setCompleted(false)
+                );
+        return response;
+    }
+
+    private void applyProgress(LessonResponse response, LessonProgress progress) {
+        response.setCompleted(Boolean.TRUE.equals(progress.getCompleted()));
+        response.setCompletedAt(progress.getCompletedAt());
     }
 }

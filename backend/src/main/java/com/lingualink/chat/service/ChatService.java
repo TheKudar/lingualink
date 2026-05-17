@@ -102,10 +102,11 @@ public class ChatService {
 
         return new ConversationResponse(
                 conversation.getId(),
-                conversation.getParticipantOneId(),
-                conversation.getParticipantTwoId(),
                 otherUserId,
                 otherUser.getUsername(),
+                otherUser.getFirstName(),
+                otherUser.getLastName(),
+                otherUser.getAvatarUrl(),
                 conversation.getCreatedAt()
         );
     }
