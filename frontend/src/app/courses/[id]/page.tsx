@@ -2,15 +2,20 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { courseService } from "@/services/courseService";
+import { reportService } from "@/services/reportService";
 import { extractErrorMessage } from "@/lib/api";
 
 export default function CoursePage() {
   const params = useParams<{ id: string }>();
   const courseId = Number(params.id);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
 
   const courseQuery = useQuery({
     queryKey: ["course", courseId],
@@ -38,7 +43,20 @@ export default function CoursePage() {
     },
   });
 
+  const reportMutation = useMutation({
+    mutationFn: () =>
+      reportService.create({
+        courseId,
+        message: reportMessage,
+      }),
+    onSuccess: () => {
+      setReportMessage("");
+      setReportOpen(false);
+    },
+  });
+
   const enrolled = !progressQuery.isError && progressQuery.data != null;
+  const reportMessageValid = reportMessage.trim().length > 0;
 
   return (
     <>
@@ -51,7 +69,7 @@ export default function CoursePage() {
             </h1>
             {enrolled && (
               <div className="text-2xl font-semibold">
-                Прогресс: {progressQuery.data?.progressPercent ?? 0}%
+                Прогресс: {progressQuery.data?.progressPercentage ?? 0}%
               </div>
             )}
           </div>
@@ -61,6 +79,55 @@ export default function CoursePage() {
               {courseQuery.data.description}
             </p>
           )}
+
+          <div className="mt-6 max-w-2xl">
+            {!reportOpen ? (
+              <Button variant="outline" onClick={() => setReportOpen(true)}>
+                Пожаловаться на курс
+              </Button>
+            ) : (
+              <form
+                className="space-y-3 rounded-lg border border-border p-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (reportMessageValid) reportMutation.mutate();
+                }}
+              >
+                <Textarea
+                  value={reportMessage}
+                  onChange={(event) => setReportMessage(event.target.value)}
+                  placeholder="Опишите проблему с курсом"
+                  rows={4}
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="submit"
+                    disabled={!reportMessageValid || reportMutation.isPending}
+                  >
+                    {reportMutation.isPending ? "Отправка..." : "Отправить жалобу"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setReportOpen(false);
+                      setReportMessage("");
+                    }}
+                  >
+                    Отмена
+                  </Button>
+                </div>
+                {reportMutation.isSuccess && (
+                  <p className="text-sm text-foreground/70">Жалоба отправлена.</p>
+                )}
+                {reportMutation.isError && (
+                  <p className="text-sm text-destructive">
+                    {extractErrorMessage(reportMutation.error)}
+                  </p>
+                )}
+              </form>
+            )}
+          </div>
 
           {!enrolled && (
             <div className="mt-6">

@@ -31,6 +31,9 @@ export interface AuthResponse {
 export interface UserMeResponse {
   id: number;
   email: string;
+  nativeLanguage: CourseLanguage | null;
+  targetLanguage: CourseLanguage | null;
+  level: CourseLevel | null;
   role: UserRole;
   status: UserStatus;
 }
@@ -42,6 +45,9 @@ export interface UserDto {
   email: string;
   firstName: string;
   lastName: string;
+  nativeLanguage: CourseLanguage | null;
+  targetLanguage: CourseLanguage | null;
+  level: CourseLevel | null;
   role: UserRole;
   status: UserStatus;
   avatarUrl: string | null;
@@ -53,6 +59,9 @@ export interface UserUpdateRequest {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
+  nativeLanguage?: CourseLanguage;
+  targetLanguage?: CourseLanguage;
+  level?: CourseLevel;
 }
 
 export interface ChatUserSearchResponse {
@@ -61,6 +70,7 @@ export interface ChatUserSearchResponse {
   firstName: string;
   lastName: string;
   avatarUrl: string | null;
+  role: UserRole;
 }
 
 export interface PublicUserProfileResponse {
@@ -75,19 +85,34 @@ export interface PublicUserProfileResponse {
 // ===== Courses =====
 export type CourseLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type CourseStatus = "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "REJECTED" | "ARCHIVED";
+export type EnrollmentStatus = "ACTIVE" | "COMPLETED" | "CANCELLED";
 
 export type CourseLanguage =
   | "ENGLISH"
   | "FRENCH"
-  | "GERMAN"
-  | "CHINESE"
   | "SPANISH"
-  | "JAPANESE"
+  | "GERMANY"
   | "ITALIAN"
   | "RUSSIAN"
+  | "JAPANESE"
+  | "KOREAN"
+  | "ARABIC"
+  | "BULGARIAN"
+  | "UKRAINIAN"
+  | "DUTCH"
+  | "DANISH"
+  | "PORTUGUESE"
+  | "ARMENIAN"
   | "KAZAKH"
+  | "BELARUSIAN"
+  | "VIETNAMESE"
+  | "SWEDISH"
   | "FINNISH"
-  | "SERBIAN";
+  | "CHINESE"
+  | "CROATIAN"
+  | "HINDI"
+  | "HUNGARIAN"
+  | "POLISH";
 
 export interface CourseSummaryResponse {
   id: number;
@@ -175,6 +200,8 @@ export interface LessonResponse {
   title: string;
   content: string;
   orderIndex: number;
+  completed?: boolean;
+  completedAt?: string | null;
 }
 
 export interface LessonCreateRequest {
@@ -192,7 +219,7 @@ export interface ExerciseCreateRequest {
   orderIndex: number;
 }
 
-export type ExerciseType = "MULTIPLE_CHOICE" | "SHORT_ANSWER" | "FILL_IN_THE_BLANK";
+export type ExerciseType = "MULTIPLE_CHOICE" | "TEXT_INPUT";
 
 export interface ExerciseResponse {
   id: number;
@@ -206,30 +233,93 @@ export interface ExerciseResponse {
 }
 
 export interface ExerciseAttemptResponse {
-  id: number;
+  attemptId: number;
   exerciseId: number;
+  courseId: number;
   answer: string;
   correct: boolean;
-  feedback: string | null;
+  correctAnswer: string;
+  explanation: string | null;
   attemptedAt: string;
+  totalLessons: number;
+  completedLessons: number;
+  totalExercises: number;
+  completedExercises: number;
+  exerciseAttempts: number;
+  totalItems: number;
+  completedItems: number;
+  progressPercentage: number;
+}
+
+export interface LessonCompletionResponse {
+  lessonId: number;
+  moduleId: number;
+  courseId: number;
+  completed: boolean;
+  completedAt: string;
+  totalLessons: number;
+  completedLessons: number;
+  totalExercises: number;
+  completedExercises: number;
+  exerciseAttempts: number;
+  totalItems: number;
+  completedItems: number;
+  progressPercentage: number;
 }
 
 export interface CourseProgressResponse {
   courseId: number;
+  enrollmentStatus: EnrollmentStatus;
+  enrolledAt: string;
+  completedAt: string | null;
   totalLessons: number;
   completedLessons: number;
-  progressPercent: number;
+  totalExercises: number;
+  completedExercises: number;
+  exerciseAttempts: number;
+  totalItems: number;
+  completedItems: number;
+  progressPercentage: number;
+}
+
+// ===== Reports =====
+export interface ReportCreateRequest {
+  courseId: number;
+  message: string;
+}
+
+export interface ReportResponse {
+  id: number;
+  userId: number;
+  courseId: number;
+  message: string;
+  createdAt: string;
 }
 
 export interface EnrolledCourseResponse {
-  id: number;
+  enrollmentId: number;
   courseId: number;
-  courseTitle: string;
+  title: string;
+  creatorName: string | null;
+  creatorAvatarUrl: string | null;
   coverImageUrl: string | null;
   language: CourseLanguage;
   level: CourseLevel;
+  price: number;
+  rating: number;
+  reviewsCount: number;
+  totalStudents: number;
+  enrollmentStatus: EnrollmentStatus;
   enrolledAt: string;
-  progressPercent: number;
+  completedAt: string | null;
+  totalLessons: number;
+  completedLessons: number;
+  totalExercises: number;
+  completedExercises: number;
+  exerciseAttempts: number;
+  totalItems: number;
+  completedItems: number;
+  progressPercentage: number;
 }
 
 // ===== Chat =====
@@ -268,13 +358,27 @@ export interface ReadingMaterialResponse {
 export const LANGUAGE_LABELS: Record<CourseLanguage, string> = {
   ENGLISH: "Английский язык",
   FRENCH: "Французский язык",
-  GERMAN: "Немецкий язык",
-  CHINESE: "Китайский язык",
   SPANISH: "Испанский язык",
-  JAPANESE: "Японский язык",
+  GERMANY: "Немецкий язык",
   ITALIAN: "Итальянский язык",
   RUSSIAN: "Русский язык",
+  JAPANESE: "Японский язык",
+  KOREAN: "Корейский язык",
+  ARABIC: "Арабский язык",
+  BULGARIAN: "Болгарский язык",
+  UKRAINIAN: "Украинский язык",
+  DUTCH: "Голландский язык",
+  DANISH: "Датский язык",
+  PORTUGUESE: "Португальский язык",
+  ARMENIAN: "Армянский язык",
   KAZAKH: "Казахский язык",
+  BELARUSIAN: "Белорусский язык",
+  VIETNAMESE: "Вьетнамский язык",
+  SWEDISH: "Шведский язык",
   FINNISH: "Финский язык",
-  SERBIAN: "Сербский язык",
+  CHINESE: "Китайский язык",
+  CROATIAN: "Хорватский язык",
+  HINDI: "Хинди",
+  HUNGARIAN: "Венгерский язык",
+  POLISH: "Польский язык",
 };

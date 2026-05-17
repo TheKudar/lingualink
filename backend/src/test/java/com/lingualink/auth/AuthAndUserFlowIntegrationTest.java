@@ -88,6 +88,21 @@ class AuthAndUserFlowIntegrationTest {
                 .andExpect(jsonPath("$.lastName").value("One"))
                 .andExpect(jsonPath("$.role").value("STUDENT"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        mockMvc.perform(patch("/api/users/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nativeLanguage": "ENGLISH",
+                                  "targetLanguage": "SPANISH",
+                                  "level": "A1"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nativeLanguage").value("ENGLISH"))
+                .andExpect(jsonPath("$.targetLanguage").value("SPANISH"))
+                .andExpect(jsonPath("$.level").value("A1"));
     }
 
     @Test

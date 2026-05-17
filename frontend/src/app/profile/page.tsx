@@ -9,12 +9,23 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Progress } from "@/components/ui/progress";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { userService } from "@/services/userService";
 import { courseService } from "@/services/courseService";
 import { useAuthStore } from "@/lib/auth-store";
 import { resolveAssetUrl } from "@/lib/api";
+import {
+  LANGUAGE_LABELS,
+  type CourseLanguage,
+  type CourseLevel,
+  type UserUpdateRequest,
+} from "@/types/api";
+
+const LEVELS: CourseLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
+const LANGUAGES = Object.entries(LANGUAGE_LABELS) as [CourseLanguage, string][];
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -23,6 +34,9 @@ export default function ProfilePage() {
   const [editingLast, setEditingLast] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [nativeLanguage, setNativeLanguage] = useState<CourseLanguage | "">("");
+  const [targetLanguage, setTargetLanguage] = useState<CourseLanguage | "">("");
+  const [level, setLevel] = useState<CourseLevel | "">("");
 
   useEffect(() => {
     if (isHydrated && !user) {
@@ -34,6 +48,9 @@ export default function ProfilePage() {
     if (user) {
       setFirstName(user.firstName);
       setLastName(user.lastName);
+      setNativeLanguage(user.nativeLanguage ?? "");
+      setTargetLanguage(user.targetLanguage ?? "");
+      setLevel(user.level ?? "");
     }
   }, [user]);
 
@@ -44,16 +61,23 @@ export default function ProfilePage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { firstName?: string; lastName?: string }) =>
-      userService.updateMe(data),
+    mutationFn: (data: UserUpdateRequest) => userService.updateMe(data),
     onSuccess: (updated) => setUser(updated),
   });
+
+  const updateLanguagePreferences = () => {
+    const payload: UserUpdateRequest = {};
+    if (nativeLanguage) payload.nativeLanguage = nativeLanguage;
+    if (targetLanguage) payload.targetLanguage = targetLanguage;
+    if (level) payload.level = level;
+    updateMutation.mutate(payload);
+  };
 
   const overallProgress =
     enrollmentsQuery.data?.content.length
       ? Math.round(
           enrollmentsQuery.data.content.reduce(
-            (sum, e) => sum + (e.progressPercent ?? 0),
+            (sum, e) => sum + (e.progressPercentage ?? 0),
             0
           ) / enrollmentsQuery.data.content.length
         )
@@ -117,13 +141,65 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              {/* Languages — placeholder until backend supports */}
               <div className="mt-8">
                 <h2 className="text-2xl font-bold">Мои языки:</h2>
-                <ul className="mt-3 grid grid-cols-2 gap-x-12 gap-y-1 text-base list-disc pl-6">
-                  <li>русский (родной)</li>
-                  <li>английский (C1)</li>
-                </ul>
+                <div className="mt-3 grid gap-4 md:grid-cols-[1fr_1fr_160px_auto] md:items-end">
+                  <div className="space-y-2">
+                    <Label htmlFor="nativeLanguage">Родной язык</Label>
+                    <NativeSelect
+                      id="nativeLanguage"
+                      value={nativeLanguage}
+                      onChange={(e) => setNativeLanguage(e.target.value as CourseLanguage | "")}
+                    >
+                      <option value="">Не выбран</option>
+                      {LANGUAGES.map(([code, label]) => (
+                        <option key={code} value={code}>
+                          {label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="targetLanguage">Изучаемый язык</Label>
+                    <NativeSelect
+                      id="targetLanguage"
+                      value={targetLanguage}
+                      onChange={(e) => setTargetLanguage(e.target.value as CourseLanguage | "")}
+                    >
+                      <option value="">Не выбран</option>
+                      {LANGUAGES.map(([code, label]) => (
+                        <option key={code} value={code}>
+                          {label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="level">Уровень</Label>
+                    <NativeSelect
+                      id="level"
+                      value={level}
+                      onChange={(e) => setLevel(e.target.value as CourseLevel | "")}
+                    >
+                      <option value="">Не выбран</option>
+                      {LEVELS.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={updateLanguagePreferences}
+                    disabled={updateMutation.isPending}
+                  >
+                    {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
+                  </Button>
+                </div>
               </div>
 
               {/* Progress */}
@@ -157,16 +233,16 @@ export default function ProfilePage() {
               ))}
             {enrollmentsQuery.data?.content.map((e) => (
               <CourseCard
-                key={e.id}
+                key={e.enrollmentId}
                 course={{
                   id: e.courseId,
-                  title: e.courseTitle,
+                  title: e.title,
                   language: e.language,
                   level: e.level,
-                  price: 0,
-                  rating: 0,
-                  reviewsCount: 0,
-                  totalStudents: 0,
+                  price: e.price,
+                  rating: e.rating,
+                  reviewsCount: e.reviewsCount,
+                  totalStudents: e.totalStudents,
                   coverImageUrl: e.coverImageUrl,
                   createdAt: e.enrolledAt,
                 }}

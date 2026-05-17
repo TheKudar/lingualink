@@ -3,6 +3,9 @@ package com.lingualink.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import com.lingualink.course.entity.CourseLanguage;
+import com.lingualink.course.entity.CourseLevel;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -33,6 +36,18 @@ public class User {
 
     @Column(nullable = false)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "native_language")
+    private CourseLanguage nativeLanguage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_language")
+    private CourseLanguage targetLanguage;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private CourseLevel level;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

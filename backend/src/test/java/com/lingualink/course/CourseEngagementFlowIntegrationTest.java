@@ -87,6 +87,9 @@ class CourseEngagementFlowIntegrationTest {
                 .firstName("Admin")
                 .lastName("One")
                 .password(passwordEncoder.encode("secret123"))
+                .nativeLanguage(com.lingualink.course.entity.CourseLanguage.ENGLISH)
+                .targetLanguage(com.lingualink.course.entity.CourseLanguage.SPANISH)
+                .level(com.lingualink.course.entity.CourseLevel.C1)
                 .role(UserRole.ADMIN)
                 .status(UserStatus.ACTIVE)
                 .build());
@@ -98,6 +101,9 @@ class CourseEngagementFlowIntegrationTest {
                   "firstName": "Creator",
                   "lastName": "One",
                   "password": "secret123",
+                  "nativeLanguage": "ENGLISH",
+                  "targetLanguage": "FRENCH",
+                  "level": "B2",
                   "role": "CREATOR"
                 }
                 """);
@@ -107,7 +113,10 @@ class CourseEngagementFlowIntegrationTest {
                   "username": "student.one",
                   "firstName": "Student",
                   "lastName": "One",
-                  "password": "secret123"
+                  "password": "secret123",
+                  "nativeLanguage": "SPANISH",
+                  "targetLanguage": "ENGLISH",
+                  "level": "A1"
                 }
                 """);
         String adminToken = loginAndExtractToken("admin@example.com", "secret123");
@@ -144,6 +153,12 @@ class CourseEngagementFlowIntegrationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString());
+
+        mockMvc.perform(get("/api/courses/{courseId}/modules", courseId)
+                        .header("Authorization", "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(moduleId))
+                .andExpect(jsonPath("$[0].lessons.length()").value(0));
 
         Long lessonId = extractId(mockMvc.perform(post("/api/courses/{courseId}/modules/{moduleId}/lessons", courseId, moduleId)
                         .header("Authorization", "Bearer " + creatorToken)
@@ -210,7 +225,8 @@ class CourseEngagementFlowIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(lessonId))
-                .andExpect(jsonPath("$.title").value("Lesson 1"));
+                .andExpect(jsonPath("$.title").value("Lesson 1"))
+                .andExpect(jsonPath("$.completed").value(false));
 
         mockMvc.perform(get("/api/courses/my-enrollments")
                         .header("Authorization", "Bearer " + studentToken))
@@ -233,6 +249,13 @@ class CourseEngagementFlowIntegrationTest {
                 .andExpect(jsonPath("$.lessonId").value(lessonId))
                 .andExpect(jsonPath("$.completed").value(true))
                 .andExpect(jsonPath("$.progressPercentage").value(100));
+
+        mockMvc.perform(get("/api/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}", courseId, moduleId, lessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(lessonId))
+                .andExpect(jsonPath("$.completed").value(true))
+                .andExpect(jsonPath("$.completedAt").isNotEmpty());
 
         mockMvc.perform(get("/api/courses/{courseId}/progress", courseId)
                         .header("Authorization", "Bearer " + studentToken))

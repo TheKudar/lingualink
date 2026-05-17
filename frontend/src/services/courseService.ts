@@ -11,6 +11,7 @@ import type {
   ExerciseCreateRequest,
   ExerciseResponse,
   LessonCreateRequest,
+  LessonCompletionResponse,
   LessonResponse,
   ModuleCreateRequest,
   ModuleResponse,
@@ -218,11 +219,12 @@ export const courseService = {
     courseId: number,
     moduleId: number,
     lessonId: number
-  ): Promise<void> => {
-    await api.post(
-      `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/complete`
-    );
-  },
+  ): Promise<LessonCompletionResponse> =>
+    (
+      await api.post<LessonCompletionResponse>(
+        `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/complete`
+      )
+    ).data,
 
   // Exercises
   listExercises: async (
@@ -233,6 +235,18 @@ export const courseService = {
     (
       await api.get<ExerciseResponse[]>(
         `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/exercises`
+      )
+    ).data,
+
+  getExercise: async (
+    courseId: number,
+    moduleId: number,
+    lessonId: number,
+    exerciseId: number
+  ): Promise<ExerciseResponse> =>
+    (
+      await api.get<ExerciseResponse>(
+        `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/exercises/${exerciseId}`
       )
     ).data,
 

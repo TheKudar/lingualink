@@ -2,6 +2,8 @@ package com.lingualink.user.service;
 
 import com.lingualink.common.exception.AppException;
 import com.lingualink.common.storage.LocalFileStorageService;
+import com.lingualink.course.entity.CourseLanguage;
+import com.lingualink.course.entity.CourseLevel;
 import com.lingualink.user.dto.ChatUserSearchResponse;
 import com.lingualink.user.dto.PublicUserProfileResponse;
 import com.lingualink.user.dto.UserDto;
@@ -48,6 +50,15 @@ public class UserService {
         if (request.getAvatarUrl() != null) {
             user.setAvatarUrl(request.getAvatarUrl().trim());
         }
+        if (request.getNativeLanguage() != null) {
+            user.setNativeLanguage(request.getNativeLanguage());
+        }
+        if (request.getTargetLanguage() != null) {
+            user.setTargetLanguage(request.getTargetLanguage());
+        }
+        if (request.getLevel() != null) {
+            user.setLevel(request.getLevel());
+        }
 
         User updated = userRepository.save(user);
         return userMapper.toDto(updated);
@@ -57,10 +68,21 @@ public class UserService {
         return userMapper.toPublicProfile(getUserById(id));
     }
 
-    public List<ChatUserSearchResponse> searchUsersForChat(String query, boolean excludeCurrentUser) {
+    public List<ChatUserSearchResponse> searchUsersForChat(
+            String query,
+            CourseLanguage language,
+            CourseLevel level,
+            boolean excludeCurrentUser
+    ) {
         Long excludeUserId = excludeCurrentUser ? getAuthenticatedUser().getId() : null;
 
-        return userRepository.searchActiveUsers(normalizeSearchQuery(query), UserStatus.ACTIVE, excludeUserId)
+        return userRepository.searchActiveUsers(
+                        normalizeSearchQuery(query),
+                        language,
+                        level,
+                        UserStatus.ACTIVE,
+                        excludeUserId
+                )
                 .stream()
                 .map(this::toChatUserSearchResponse)
                 .toList();

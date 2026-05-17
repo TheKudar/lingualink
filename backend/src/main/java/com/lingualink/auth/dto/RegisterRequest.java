@@ -1,5 +1,7 @@
 package com.lingualink.auth.dto;
 
+import com.lingualink.course.entity.CourseLanguage;
+import com.lingualink.course.entity.CourseLevel;
 import com.lingualink.user.entity.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -30,6 +32,12 @@ public record RegisterRequest(
         @NotBlank(message = "Password is required")
         @Size(min = 6, message = "Password must be at least 6 characters")
         String password,
+
+        CourseLanguage nativeLanguage,
+
+        CourseLanguage targetLanguage,
+
+        CourseLevel level,
 
         UserRole role
 ) {

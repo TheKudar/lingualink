@@ -14,7 +14,7 @@ public interface ModuleRepository extends JpaRepository<Module, Long> {
 
     List<Module> findByCourseIdOrderByOrderIndexAsc(Long courseId);
 
-    @Query("SELECT m FROM Module m JOIN FETCH m.lessons WHERE m.course.id = :courseId ORDER BY m.orderIndex ASC")
+    @Query("SELECT DISTINCT m FROM Module m LEFT JOIN FETCH m.lessons WHERE m.course.id = :courseId ORDER BY m.orderIndex ASC")
     List<Module> findByCourseIdWithLessons(@Param("courseId") Long courseId);
 
     @Query("SELECT m FROM Module m WHERE m.id = :id AND m.course.id = :courseId")

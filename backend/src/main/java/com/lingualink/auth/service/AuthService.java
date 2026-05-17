@@ -47,6 +47,9 @@ public class AuthService {
                 .firstName(normalizeName(request.firstName()))
                 .lastName(normalizeName(request.lastName()))
                 .password(passwordEncoder.encode(request.password()))
+                .nativeLanguage(request.nativeLanguage())
+                .targetLanguage(request.targetLanguage())
+                .level(request.level())
                 .role(requestedRole)
                 .status(UserStatus.ACTIVE)
                 .build();
@@ -80,6 +83,9 @@ public class AuthService {
         return new UserMeResponse(
                 user.getId(),
                 user.getEmail(),
+                user.getNativeLanguage(),
+                user.getTargetLanguage(),
+                user.getLevel(),
                 user.getRole(),
                 user.getStatus()
         );
