@@ -354,6 +354,32 @@ export interface ReadingMaterialResponse {
   createdAt: string;
 }
 
+// ===== Personal dictionaries =====
+export interface DictionaryEntryResponse {
+  id: number;
+  sourceWord: string;
+  targetWord: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DictionaryResponse {
+  id: number;
+  name: string;
+  entries: DictionaryEntryResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DictionaryCreateRequest {
+  name: string;
+}
+
+export interface DictionaryEntryRequest {
+  sourceWord: string;
+  targetWord: string;
+}
+
 // ===== Helper labels =====
 export const LANGUAGE_LABELS: Record<CourseLanguage, string> = {
   ENGLISH: "Английский язык",
