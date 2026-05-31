@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/layout/Navbar";
+import { RichTextContent } from "@/components/editor/RichTextContent";
 import { Button } from "@/components/ui/button";
 import { courseService } from "@/services/courseService";
 
@@ -49,9 +50,16 @@ export default function LessonPage() {
           </h1>
           <h2 className="mt-6 text-lg font-medium">{lessonQuery.data?.title}</h2>
 
-          <div className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-foreground/85">
-            {lessonQuery.isLoading ? "Загрузка..." : lessonQuery.data?.content}
-          </div>
+          {lessonQuery.isLoading ? (
+            <p className="mt-6 text-base leading-relaxed text-foreground/85">
+              Загрузка...
+            </p>
+          ) : (
+            <RichTextContent
+              value={lessonQuery.data?.content}
+              className="mt-6 text-base leading-relaxed text-foreground/85"
+            />
+          )}
 
           {exercisesQuery.data && exercisesQuery.data.length > 0 && (
             <div className="mt-10 flex flex-col gap-2">

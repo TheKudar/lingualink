@@ -1,11 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
+import {
+  isRichTextEmpty,
+  normalizeRichTextValue,
+  parseRichTextDocument,
+  serializeRichTextDocument,
+} from "@/lib/rich-text";
 import {
   LANGUAGE_LABELS,
   type CourseCreateRequest,
@@ -32,7 +38,10 @@ export function CourseForm({
   error,
 }: Props) {
   const [title, setTitle] = useState(defaultValues?.title ?? "");
-  const [description, setDescription] = useState(defaultValues?.description ?? "");
+  const [description, setDescription] = useState(
+    normalizeRichTextValue(defaultValues?.description)
+  );
+  const [localError, setLocalError] = useState<string | null>(null);
   const [language, setLanguage] = useState<CourseLanguage>(
     defaultValues?.language ?? "ENGLISH"
   );
@@ -43,11 +52,19 @@ export function CourseForm({
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
+      onSubmit={(event) => {
+        event.preventDefault();
+        const descriptionDocument = parseRichTextDocument(description);
+
+        if (isRichTextEmpty(descriptionDocument)) {
+          setLocalError("Добавьте описание курса.");
+          return;
+        }
+
+        setLocalError(null);
         onSubmit({
           title,
-          description,
+          description: serializeRichTextDocument(descriptionDocument),
           language,
           level,
           price: Number(price) || 0,
@@ -55,9 +72,9 @@ export function CourseForm({
       }}
       className="space-y-5"
     >
-      {error && (
+      {(error || localError) && (
         <p className="rounded-lg bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          {error}
+          {error || localError}
         </p>
       )}
 
@@ -66,7 +83,7 @@ export function CourseForm({
         <Input
           id="title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(event) => setTitle(event.target.value)}
           maxLength={100}
           required
           placeholder="Например: Французский для начинающих"
@@ -75,14 +92,15 @@ export function CourseForm({
 
       <div className="space-y-2">
         <Label htmlFor="description">Описание</Label>
-        <Textarea
+        <RichTextEditor
           id="description"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          maxLength={1000}
-          required
-          rows={5}
-          placeholder="О чём этот курс, чему научится студент"
+          onChange={(nextValue) => {
+            setDescription(nextValue);
+            setLocalError(null);
+          }}
+          placeholder="О чем этот курс, чему научится студент"
+          minHeightClassName="min-h-40"
         />
       </div>
 
@@ -92,7 +110,7 @@ export function CourseForm({
           <NativeSelect
             id="language"
             value={language}
-            onChange={(e) => setLanguage(e.target.value as CourseLanguage)}
+            onChange={(event) => setLanguage(event.target.value as CourseLanguage)}
           >
             {LANGUAGES.map(([code, label]) => (
               <option key={code} value={code}>
@@ -107,11 +125,11 @@ export function CourseForm({
           <NativeSelect
             id="level"
             value={level}
-            onChange={(e) => setLevel(e.target.value as CourseLevel)}
+            onChange={(event) => setLevel(event.target.value as CourseLevel)}
           >
-            {LEVELS.map((l) => (
-              <option key={l} value={l}>
-                {l}
+            {LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
               </option>
             ))}
           </NativeSelect>
@@ -126,8 +144,8 @@ export function CourseForm({
           min={0}
           step={100}
           value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="0 — бесплатно"
+          onChange={(event) => setPrice(event.target.value)}
+          placeholder="0 - бесплатно"
         />
       </div>
 

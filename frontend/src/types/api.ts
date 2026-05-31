@@ -282,6 +282,67 @@ export interface CourseProgressResponse {
   progressPercentage: number;
 }
 
+// ===== Creator analytics =====
+export interface LessonTimeAnalyticsResponse {
+  lessonId: number;
+  moduleId: number;
+  lessonTitle: string;
+  averageTimeSpentSeconds: number | null;
+  totalTimeSpentSeconds: number | null;
+}
+
+export interface CourseAnalyticsOverviewResponse {
+  courseId: number;
+  dailyActiveUsers: number;
+  weeklyActiveUsers: number;
+  enrolledUsers: number;
+  completedUsers: number;
+  completionRatePercent: number;
+  averageSessionDurationSeconds: number | null;
+  averageTotalTimeSpentSecondsPerUser: number | null;
+  averageTimeToCompleteSeconds: number | null;
+  lessonTimes: LessonTimeAnalyticsResponse[];
+}
+
+export interface QuestionAnalyticsResponse {
+  questionId: number;
+  lessonId: number;
+  question: string;
+  totalAnswers: number;
+  correctAnswers: number;
+  incorrectAnswers: number;
+  errorRatePercent: number;
+}
+
+export interface DropoffLessonAnalyticsResponse {
+  lessonId: number;
+  moduleId: number;
+  lessonTitle: string;
+  lessonOrder: number;
+  startedUsers: number;
+  completedUsers: number;
+  stoppedUsers: number;
+  stopRatePercent: number;
+}
+
+export interface CourseReviewCreateRequest {
+  rating: number;
+  comment?: string | null;
+}
+
+export interface CourseReviewResponse {
+  id: number;
+  courseId: number;
+  studentId: number;
+  studentUsername: string | null;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studentAvatarUrl: string | null;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
 // ===== Reports =====
 export interface ReportCreateRequest {
   courseId: number;

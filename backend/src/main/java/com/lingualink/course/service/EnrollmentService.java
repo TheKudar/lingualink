@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -53,18 +54,27 @@ public class EnrollmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot enroll in your own course");
         }
 
-        if (enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId)) {
+        Enrollment enrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)
+                .orElseGet(() -> Enrollment.builder()
+                        .studentId(student.getId())
+                        .courseId(course.getId())
+                        .build());
+        boolean existingEnrollment = enrollment.getId() != null;
+        boolean shouldIncreaseStudentCount = !existingEnrollment
+                || enrollment.getStatus() == EnrollmentStatus.CANCELLED;
+
+        if (existingEnrollment && TRACKABLE_STATUSES.contains(enrollment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "You are already enrolled in this course");
         }
 
-        Enrollment enrollment = Enrollment.builder()
-                .studentId(student.getId())
-                .courseId(course.getId())
-                .status(EnrollmentStatus.ACTIVE)
-                .build();
+        enrollment.setStatus(EnrollmentStatus.ACTIVE);
+        enrollment.setCompletedAt(null);
+        enrollment.setCancelledAt(null);
 
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
-        course.setTotalStudents(course.getTotalStudents() + 1);
+        if (shouldIncreaseStudentCount) {
+            course.setTotalStudents(course.getTotalStudents() + 1);
+        }
 
         return toEnrolledCourseResponse(savedEnrollment, course, buildCreatorInfoMap(List.of(course)));
     }
@@ -72,7 +82,12 @@ public class EnrollmentService {
     public Page<EnrolledCourseResponse> getMyCourses(Long studentId, Pageable pageable) {
         getStudentUser(studentId);
 
-        Page<Enrollment> enrollments = enrollmentRepository.findByStudentIdOrderByEnrolledAtDesc(studentId, pageable);
+        Page<Enrollment> enrollments =
+                enrollmentRepository.findByStudentIdAndStatusInOrderByEnrolledAtDesc(
+                        studentId,
+                        TRACKABLE_STATUSES,
+                        pageable
+                );
         List<Long> courseIds = enrollments.getContent().stream()
                 .map(Enrollment::getCourseId)
                 .toList();
@@ -93,6 +108,29 @@ public class EnrollmentService {
                 .toList();
 
         return new PageImpl<>(content, pageable, enrollments.getTotalElements());
+    }
+
+    @Transactional
+    public void unenrollFromCourse(Long courseId, Long studentId) {
+        getStudentUser(studentId);
+
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new AppException("Course not found with id: " + courseId));
+
+        Enrollment enrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Вы не записаны на этот курс"
+                ));
+
+        if (!TRACKABLE_STATUSES.contains(enrollment.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Эта запись на курс уже не активна");
+        }
+
+        enrollment.setStatus(EnrollmentStatus.CANCELLED);
+        enrollment.setCancelledAt(LocalDateTime.now());
+        enrollmentRepository.save(enrollment);
+        course.setTotalStudents(Math.max(0, course.getTotalStudents() - 1));
     }
 
     public CourseProgressResponse getCourseProgress(Long courseId, Long studentId) {

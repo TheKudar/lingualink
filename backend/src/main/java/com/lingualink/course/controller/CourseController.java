@@ -166,6 +166,16 @@ public class CourseController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @DeleteMapping("/{id}/enroll")
+    @Operation(summary = "Отписаться от курса", description = "Удаляет активную запись текущего студента на курс.")
+    public ResponseEntity<Void> unenrollFromCourse(
+            @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
+        Long studentId = getCurrentUserId(currentUser);
+        enrollmentService.unenrollFromCourse(id, studentId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/my-enrollments")
     @Operation(summary = "List my enrollments", description = "Returns courses the authenticated user is enrolled in.")
     public ResponseEntity<Page<EnrolledCourseResponse>> getMyEnrollments(

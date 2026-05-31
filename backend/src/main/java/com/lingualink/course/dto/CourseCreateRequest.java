@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 
 public record CourseCreateRequest(
         @NotBlank @Size(max = 100) String title,
-        @NotBlank @Size(max = 1000) String description,
+        @NotBlank @Size(max = 20000) String description,
         @NotNull CourseLanguage language,
         @NotNull CourseLevel level,
         @PositiveOrZero BigDecimal price,

@@ -1,5 +1,6 @@
 package com.lingualink.course.service;
 
+import com.lingualink.analytics.service.AnalyticsService;
 import com.lingualink.common.exception.AppException;
 import com.lingualink.course.dto.ExerciseAnswerRequest;
 import com.lingualink.course.dto.ExerciseAttemptResponse;
@@ -37,6 +38,7 @@ public class ExerciseService {
     private final CourseAccessService courseAccessService;
     private final EnrollmentService enrollmentService;
     private final CourseProgressService courseProgressService;
+    private final AnalyticsService analyticsService;
 
     @Transactional
     public ExerciseResponse createExercise(
@@ -151,6 +153,7 @@ public class ExerciseService {
                 .answer(request.answer().trim())
                 .correct(correct)
                 .build());
+        analyticsService.recordQuestionAnswered(courseId, lessonId, exerciseId, studentId, correct);
 
         CourseProgressService.CourseProgressSnapshot snapshot =
                 courseProgressService.calculateProgress(studentId, courseId);

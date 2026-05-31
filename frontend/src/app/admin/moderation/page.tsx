@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, X } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
+import { RichTextContent } from "@/components/editor/RichTextContent";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -99,9 +100,10 @@ export default function AdminModerationPage() {
                   <p className="mt-1 text-sm text-foreground/60">
                     {c.creatorName} · {LANGUAGE_LABELS[c.language]} · {c.level}
                   </p>
-                  <p className="mt-2 text-sm text-foreground/80 line-clamp-3">
-                    {c.description}
-                  </p>
+                  <RichTextContent
+                    value={c.description}
+                    className="mt-2 line-clamp-3 text-sm text-foreground/80"
+                  />
                 </div>
 
                 <div className="flex gap-2 sm:flex-col">

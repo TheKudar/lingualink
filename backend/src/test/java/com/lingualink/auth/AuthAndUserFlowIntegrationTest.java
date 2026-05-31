@@ -57,7 +57,6 @@ class AuthAndUserFlowIntegrationTest {
                   "password": "secret123"
                 }
                 """;
-
         String responseBody = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))

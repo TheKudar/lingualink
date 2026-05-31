@@ -3,6 +3,8 @@ import type {
   CourseCreateRequest,
   CourseFilters,
   CourseProgressResponse,
+  CourseReviewCreateRequest,
+  CourseReviewResponse,
   CourseResponse,
   CourseSummaryResponse,
   CourseUpdateRequest,
@@ -111,6 +113,10 @@ export const courseService = {
   enroll: async (id: number): Promise<EnrolledCourseResponse> =>
     (await api.post<EnrolledCourseResponse>(`/api/courses/${id}/enroll`)).data,
 
+  unenroll: async (id: number): Promise<void> => {
+    await api.delete(`/api/courses/${id}/enroll`);
+  },
+
   myEnrollments: async (page?: PageParams): Promise<PageResponse<EnrolledCourseResponse>> =>
     (
       await api.get<PageResponse<EnrolledCourseResponse>>("/api/courses/my-enrollments", {
@@ -120,6 +126,26 @@ export const courseService = {
 
   getProgress: async (id: number): Promise<CourseProgressResponse> =>
     (await api.get<CourseProgressResponse>(`/api/courses/${id}/progress`)).data,
+
+  listReviews: async (
+    id: number,
+    page?: PageParams
+  ): Promise<PageResponse<CourseReviewResponse>> =>
+    (
+      await api.get<PageResponse<CourseReviewResponse>>(`/api/courses/${id}/reviews`, {
+        params: {
+          page: page?.page ?? 0,
+          size: page?.size ?? 20,
+          sort: page?.sort ?? "createdAt,desc",
+        },
+      })
+    ).data,
+
+  createReview: async (
+    id: number,
+    request: CourseReviewCreateRequest
+  ): Promise<CourseReviewResponse> =>
+    (await api.post<CourseReviewResponse>(`/api/courses/${id}/reviews`, request)).data,
 
   // Modules
   listModules: async (courseId: number): Promise<ModuleResponse[]> =>

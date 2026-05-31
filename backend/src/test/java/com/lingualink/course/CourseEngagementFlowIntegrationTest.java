@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lingualink.course.entity.Course;
 import com.lingualink.course.entity.CourseStatus;
+import com.lingualink.course.entity.EnrollmentStatus;
 import com.lingualink.course.repository.CourseRepository;
 import com.lingualink.course.repository.CourseReviewRepository;
 import com.lingualink.course.repository.EnrollmentRepository;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -291,6 +293,44 @@ class CourseEngagementFlowIntegrationTest {
         assertThat(course.getRating()).isEqualTo(5.0);
         assertThat(course.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(99.99));
         assertThat(admin.getRole()).isEqualTo(UserRole.ADMIN);
+
+        mockMvc.perform(delete("/api/courses/{courseId}/enroll", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/courses/my-enrollments")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        mockMvc.perform(get("/api/courses/{courseId}/modules", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/courses/{courseId}/progress", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isForbidden());
+
+        assertThat(enrollmentRepository.findByStudentIdAndCourseId(
+                userRepository.findByEmailIgnoreCase("student@example.com").orElseThrow().getId(),
+                courseId
+        ).orElseThrow().getStatus()).isEqualTo(EnrollmentStatus.CANCELLED);
+        assertThat(courseRepository.findById(courseId).orElseThrow().getTotalStudents()).isZero();
+
+        mockMvc.perform(post("/api/courses/{courseId}/enroll", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.courseId").value(courseId))
+                .andExpect(jsonPath("$.enrollmentStatus").value("ACTIVE"));
+
+        mockMvc.perform(get("/api/courses/my-enrollments")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].courseId").value(courseId))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        assertThat(courseRepository.findById(courseId).orElseThrow().getTotalStudents()).isEqualTo(1);
     }
 
     private String registerAndExtractToken(String requestBody) throws Exception {

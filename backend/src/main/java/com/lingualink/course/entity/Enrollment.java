@@ -38,6 +38,9 @@ public class Enrollment {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @PrePersist
     public void onCreate() {
         if (enrolledAt == null) {

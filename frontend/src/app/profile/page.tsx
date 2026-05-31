@@ -3,11 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Pencil, LogOut } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pencil, LogOut, Trash2 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -16,7 +22,7 @@ import { CourseCard } from "@/components/courses/CourseCard";
 import { userService } from "@/services/userService";
 import { courseService } from "@/services/courseService";
 import { useAuthStore } from "@/lib/auth-store";
-import { resolveAssetUrl } from "@/lib/api";
+import { extractErrorMessage, resolveAssetUrl } from "@/lib/api";
 import {
   LANGUAGE_LABELS,
   type CourseLanguage,
@@ -29,6 +35,7 @@ const LANGUAGES = Object.entries(LANGUAGE_LABELS) as [CourseLanguage, string][];
 
 export default function ProfilePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, isHydrated, logout, setUser } = useAuthStore();
   const [editingFirst, setEditingFirst] = useState(false);
   const [editingLast, setEditingLast] = useState(false);
@@ -37,6 +44,8 @@ export default function ProfilePage() {
   const [nativeLanguage, setNativeLanguage] = useState<CourseLanguage | "">("");
   const [targetLanguage, setTargetLanguage] = useState<CourseLanguage | "">("");
   const [level, setLevel] = useState<CourseLevel | "">("");
+  const [courseToRemove, setCourseToRemove] = useState<number | null>(null);
+  const [removeSuccess, setRemoveSuccess] = useState(false);
 
   useEffect(() => {
     if (isHydrated && !user) {
@@ -65,6 +74,15 @@ export default function ProfilePage() {
     onSuccess: (updated) => setUser(updated),
   });
 
+  const unenrollMutation = useMutation({
+    mutationFn: (courseId: number) => courseService.unenroll(courseId),
+    onSuccess: () => {
+      setCourseToRemove(null);
+      setRemoveSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
+    },
+  });
+
   const updateLanguagePreferences = () => {
     const payload: UserUpdateRequest = {};
     if (nativeLanguage) payload.nativeLanguage = nativeLanguage;
@@ -82,6 +100,9 @@ export default function ProfilePage() {
           ) / enrollmentsQuery.data.content.length
         )
       : 0;
+  const selectedEnrollment = enrollmentsQuery.data?.content.find(
+    (enrollment) => enrollment.courseId === courseToRemove
+  );
 
   if (!user) return <Navbar />;
 
@@ -225,6 +246,11 @@ export default function ProfilePage() {
               Все курсы
             </Link>
           </div>
+          {removeSuccess && (
+            <p className="mt-3 text-sm text-foreground/70">
+              Курс успешно удалён из списка ваших курсов
+            </p>
+          )}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {enrollmentsQuery.isLoading &&
@@ -232,21 +258,35 @@ export default function ProfilePage() {
                 <div key={i} className="h-44 animate-pulse rounded-2xl bg-muted" />
               ))}
             {enrollmentsQuery.data?.content.map((e) => (
-              <CourseCard
-                key={e.enrollmentId}
-                course={{
-                  id: e.courseId,
-                  title: e.title,
-                  language: e.language,
-                  level: e.level,
-                  price: e.price,
-                  rating: e.rating,
-                  reviewsCount: e.reviewsCount,
-                  totalStudents: e.totalStudents,
-                  coverImageUrl: e.coverImageUrl,
-                  createdAt: e.enrolledAt,
-                }}
-              />
+              <div key={e.enrollmentId} className="space-y-2">
+                <CourseCard
+                  course={{
+                    id: e.courseId,
+                    title: e.title,
+                    language: e.language,
+                    level: e.level,
+                    price: e.price,
+                    rating: e.rating,
+                    reviewsCount: e.reviewsCount,
+                    totalStudents: e.totalStudents,
+                    coverImageUrl: e.coverImageUrl,
+                    createdAt: e.enrolledAt,
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    setCourseToRemove(e.courseId);
+                    setRemoveSuccess(false);
+                    unenrollMutation.reset();
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Удалить курс из моих курсов
+                </Button>
+              </div>
             ))}
             {enrollmentsQuery.data?.content.length === 0 && (
               <p className="col-span-full text-sm text-muted-foreground">
@@ -256,6 +296,49 @@ export default function ProfilePage() {
           </div>
         </section>}
       </main>
+      <Dialog open={courseToRemove != null} onOpenChange={(open) => {
+        if (!open) setCourseToRemove(null);
+      }}>
+        <DialogContent className="p-6">
+          <DialogTitle>Удалить курс из моих курсов</DialogTitle>
+          <DialogDescription>
+            Вы уверены, что хотите отписаться от курса?
+          </DialogDescription>
+          {selectedEnrollment && (
+            <p className="text-sm font-medium text-foreground">
+              {selectedEnrollment.title}
+            </p>
+          )}
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCourseToRemove(null)}
+              disabled={unenrollMutation.isPending}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                if (courseToRemove != null) {
+                  unenrollMutation.mutate(courseToRemove);
+                }
+              }}
+              disabled={unenrollMutation.isPending}
+            >
+              {unenrollMutation.isPending ? "Удаление..." : "Удалить курс из моих курсов"}
+            </Button>
+          </div>
+          {unenrollMutation.isError && (
+            <p className="text-sm text-destructive">
+              {extractErrorMessage(unenrollMutation.error)}
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

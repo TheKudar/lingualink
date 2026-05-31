@@ -1,5 +1,6 @@
 package com.lingualink.course.service;
 
+import com.lingualink.analytics.service.AnalyticsService;
 import com.lingualink.common.exception.AppException;
 import com.lingualink.course.dto.LessonCompletionResponse;
 import com.lingualink.course.entity.Course;
@@ -28,6 +29,7 @@ public class LessonProgressService {
     private final EnrollmentRepository enrollmentRepository;
     private final EnrollmentService enrollmentService;
     private final CourseProgressService courseProgressService;
+    private final AnalyticsService analyticsService;
 
     @Transactional
     public LessonCompletionResponse completeLesson(Long courseId, Long moduleId, Long lessonId, Long studentId) {
@@ -52,6 +54,7 @@ public class LessonProgressService {
             progress.setCompleted(true);
             progress.setCompletedAt(LocalDateTime.now());
             lessonProgressRepository.save(progress);
+            analyticsService.recordLessonComplete(course.getId(), lesson.getId(), studentId);
         }
 
         CourseProgressService.CourseProgressSnapshot snapshot =

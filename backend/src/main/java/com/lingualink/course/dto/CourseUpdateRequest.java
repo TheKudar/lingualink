@@ -20,7 +20,7 @@ public class CourseUpdateRequest {
     @Size(max = 100)
     private String title;
 
-    @Size(max = 1000)
+    @Size(max = 20000)
     private String description;
 
     private CourseLanguage language;

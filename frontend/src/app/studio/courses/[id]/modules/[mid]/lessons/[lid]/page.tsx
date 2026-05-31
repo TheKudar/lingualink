@@ -11,9 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { courseService } from "@/services/courseService";
 import { useAuthStore } from "@/lib/auth-store";
 import { extractErrorMessage } from "@/lib/api";
+import {
+  normalizeRichTextValue,
+  parseRichTextDocument,
+  serializeRichTextDocument,
+} from "@/lib/rich-text";
 import type { ExerciseCreateRequest, ExerciseType } from "@/types/api";
 
 const TYPES: { value: ExerciseType; label: string }[] = [
@@ -52,7 +58,7 @@ export default function LessonEditorPage() {
   useEffect(() => {
     if (lessonQuery.data) {
       setTitle(lessonQuery.data.title);
-      setContent(lessonQuery.data.content ?? "");
+      setContent(normalizeRichTextValue(lessonQuery.data.content));
     }
   }, [lessonQuery.data]);
 
@@ -60,7 +66,7 @@ export default function LessonEditorPage() {
     mutationFn: () =>
       courseService.updateLesson(courseId, moduleId, lessonId, {
         title,
-        content,
+        content: serializeRichTextDocument(parseRichTextDocument(content)),
         orderIndex: lessonQuery.data?.orderIndex ?? 0,
       }),
     onSuccess: () => {
@@ -150,11 +156,11 @@ export default function LessonEditorPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="lesson-content">Содержание</Label>
-              <Textarea
+              <RichTextEditor
                 id="lesson-content"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={12}
+                onChange={setContent}
+                minHeightClassName="min-h-72"
                 placeholder="Текст урока, который увидит студент"
               />
             </div>

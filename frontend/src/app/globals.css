@@ -60,3 +60,65 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+@layer components {
+  .rich-text-editor-content p,
+  .rich-text-content p {
+    @apply my-3;
+  }
+
+  .rich-text-editor-content h1,
+  .rich-text-content h1 {
+    @apply mb-4 mt-6 text-3xl font-bold leading-tight;
+  }
+
+  .rich-text-editor-content h2,
+  .rich-text-content h2 {
+    @apply mb-3 mt-5 text-2xl font-semibold leading-tight;
+  }
+
+  .rich-text-editor-content h3,
+  .rich-text-content h3 {
+    @apply mb-2 mt-4 text-xl font-semibold leading-tight;
+  }
+
+  .rich-text-editor-content ul,
+  .rich-text-content ul {
+    @apply my-3 list-disc pl-6;
+  }
+
+  .rich-text-editor-content ol,
+  .rich-text-content ol {
+    @apply my-3 list-decimal pl-6;
+  }
+
+  .rich-text-editor-content blockquote,
+  .rich-text-content blockquote {
+    @apply my-4 border-l-4 border-primary/40 pl-4 italic text-foreground/75;
+  }
+
+  .rich-text-editor-content pre,
+  .rich-text-content pre {
+    @apply my-4 overflow-x-auto rounded-lg bg-foreground px-4 py-3 text-sm text-background;
+  }
+
+  .rich-text-editor-content code,
+  .rich-text-content code {
+    @apply rounded bg-muted px-1 py-0.5 text-sm;
+  }
+
+  .rich-text-editor-content pre code,
+  .rich-text-content pre code {
+    @apply bg-transparent p-0 text-inherit;
+  }
+
+  .rich-text-editor-content a,
+  .rich-text-content a {
+    @apply text-primary underline underline-offset-2;
+  }
+
+  .rich-text-editor-content .is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-muted-foreground;
+    content: attr(data-placeholder);
+  }
+}

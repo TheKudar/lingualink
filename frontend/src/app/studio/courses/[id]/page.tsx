@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Image as ImageIcon, Plus, Send, Trash2, Archive } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Plus, Send, Trash2, Archive, BarChart3 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,6 +152,11 @@ export default function StudioCoursePage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <Link href={`/creator/courses/${courseId}/analytics`}>
+                <Button variant="outline">
+                  <BarChart3 className="mr-2 h-4 w-4" /> Аналитика
+                </Button>
+              </Link>
               {isDraft && (
                 <Button
                   variant="success"

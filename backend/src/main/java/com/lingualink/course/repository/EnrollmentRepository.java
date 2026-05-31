@@ -12,11 +12,13 @@ import java.util.Optional;
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Optional<Enrollment> findByStudentIdAndCourseId(Long studentId, Long courseId);
 
-    boolean existsByStudentIdAndCourseId(Long studentId, Long courseId);
-
     boolean existsByStudentIdAndCourseIdAndStatusIn(Long studentId, Long courseId, Collection<EnrollmentStatus> statuses);
 
     long countByCourseIdAndStatusIn(Long courseId, Collection<EnrollmentStatus> statuses);
 
-    Page<Enrollment> findByStudentIdOrderByEnrolledAtDesc(Long studentId, Pageable pageable);
+    Page<Enrollment> findByStudentIdAndStatusInOrderByEnrolledAtDesc(
+            Long studentId,
+            Collection<EnrollmentStatus> statuses,
+            Pageable pageable
+    );
 }
