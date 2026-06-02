@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
@@ -9,12 +9,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { CourseFiltersDialog } from "@/components/courses/CourseFilters";
 import { courseService } from "@/services/courseService";
+import { useFavoriteCoursesStore } from "@/lib/favorite-courses-store";
+import { cn } from "@/lib/utils";
 import type { CourseFilters } from "@/types/api";
 
 export default function CoursesPage() {
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState<CourseFilters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<"all" | "favorites">("all");
+  const favoriteCoursesById = useFavoriteCoursesStore((state) => state.coursesById);
+  const favoriteCourses = useMemo(() => Object.values(favoriteCoursesById), [favoriteCoursesById]);
 
   // Top filter bar (mini): language placeholder + free-only
   const [freeOnly, setFreeOnly] = useState(false);
@@ -73,24 +78,53 @@ export default function CoursesPage() {
         </form>
 
         {/* Results */}
-        <h1 className="mt-8 text-3xl font-bold">Все курсы</h1>
+        <div className="mt-8 flex flex-wrap items-center gap-6">
+          <button
+            type="button"
+            onClick={() => setActiveSection("all")}
+            className={cn(
+              "text-3xl font-bold transition-colors",
+              activeSection === "all" ? "text-foreground" : "text-foreground/45 hover:text-foreground"
+            )}
+          >
+            Все курсы
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection("favorites")}
+            className={cn(
+              "text-3xl font-bold transition-colors",
+              activeSection === "favorites" ? "text-foreground" : "text-foreground/45 hover:text-foreground"
+            )}
+          >
+            Избранные курсы
+          </button>
+        </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {query.isLoading &&
+          {activeSection === "all" && query.isLoading &&
             Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-44 animate-pulse rounded-2xl bg-muted" />
             ))}
-          {query.data?.content.map((course) => (
+          {activeSection === "all" && query.data?.content.map((course) => (
             <CourseCard key={course.id} course={course} />
           ))}
-          {query.isError && (
+          {activeSection === "favorites" && favoriteCourses.map((course) => (
+            <CourseCard key={course.id} course={course} />
+          ))}
+          {activeSection === "all" && query.isError && (
             <p className="col-span-full text-sm text-muted-foreground">
               Не удалось загрузить курсы.
             </p>
           )}
-          {query.data?.empty && (
+          {activeSection === "all" && query.data?.empty && (
             <p className="col-span-full text-sm text-muted-foreground">
               Курсы не найдены.
+            </p>
+          )}
+          {activeSection === "favorites" && favoriteCourses.length === 0 && (
+            <p className="col-span-full text-sm text-muted-foreground">
+              В избранном пока нет курсов.
             </p>
           )}
         </div>

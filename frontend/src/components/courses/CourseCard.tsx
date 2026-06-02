@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Heart, Star, User as UserIcon, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatStudentCount } from "@/lib/utils";
 import { resolveAssetUrl } from "@/lib/api";
+import { useFavoriteCoursesStore } from "@/lib/favorite-courses-store";
 import type { CourseSummaryResponse } from "@/types/api";
 
 interface Props {
@@ -15,7 +15,8 @@ interface Props {
 }
 
 export function CourseCard({ course, durationHours, authorName }: Props) {
-  const [favorite, setFavorite] = useState(false);
+  const favorite = useFavoriteCoursesStore((state) => state.isFavorite(course.id));
+  const toggleCourse = useFavoriteCoursesStore((state) => state.toggleCourse);
   const cover = resolveAssetUrl(course.coverImageUrl);
 
   return (
@@ -47,7 +48,7 @@ export function CourseCard({ course, durationHours, authorName }: Props) {
             aria-label={favorite ? "Убрать из избранного" : "В избранное"}
             onClick={(e) => {
               e.preventDefault();
-              setFavorite((v) => !v);
+              toggleCourse(course);
             }}
             className="absolute -top-1.5 -right-1.5"
           >
