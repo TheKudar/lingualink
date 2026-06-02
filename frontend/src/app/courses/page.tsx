@@ -72,26 +72,6 @@ export default function CoursesPage() {
           </Button>
         </form>
 
-        {/* Big search row */}
-        <div className="mt-4 flex flex-wrap items-center gap-4">
-          <div className="relative flex-1 min-w-72">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Введите запрос..."
-              className="h-14 w-full rounded-xl bg-input-soft pl-12 pr-4 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <Button variant="outline" size="lg" onClick={() => setFiltersOpen(true)}>
-            Фильтры
-          </Button>
-          <Button size="lg" onClick={() => query.refetch()}>
-            Поиск
-          </Button>
-        </div>
-
         {/* Results */}
         <h1 className="mt-8 text-3xl font-bold">Все курсы</h1>
 

@@ -72,7 +72,7 @@ export default function HomePage() {
             ))}
             {popularQuery.isError && (
               <p className="col-span-full text-sm text-muted-foreground">
-                Не удалось загрузить курсы. Убедитесь, что backend запущен на http://localhost:8080
+                Не удалось загрузить курсы. Попробуйте обновить страницу.
               </p>
             )}
             {popularQuery.data && popularQuery.data.content.length === 0 && (
