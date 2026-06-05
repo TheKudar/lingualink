@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, LogOut, Trash2 } from "lucide-react";
+import { Pencil, LogOut, Trash2, Camera, Loader2 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,6 +32,8 @@ import {
 
 const LEVELS: CourseLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const LANGUAGES = Object.entries(LANGUAGE_LABELS) as [CourseLanguage, string][];
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png"];
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -46,6 +48,8 @@ export default function ProfilePage() {
   const [level, setLevel] = useState<CourseLevel | "">("");
   const [courseToRemove, setCourseToRemove] = useState<number | null>(null);
   const [removeSuccess, setRemoveSuccess] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isHydrated && !user) {
@@ -74,6 +78,17 @@ export default function ProfilePage() {
     onSuccess: (updated) => setUser(updated),
   });
 
+  const avatarMutation = useMutation({
+    mutationFn: (file: File) => userService.uploadAvatar(file),
+    onSuccess: (updated) => {
+      setUser(updated);
+      setAvatarError(null);
+    },
+    onError: (error) => {
+      setAvatarError(extractErrorMessage(error));
+    },
+  });
+
   const unenrollMutation = useMutation({
     mutationFn: (courseId: number) => courseService.unenroll(courseId),
     onSuccess: () => {
@@ -89,6 +104,27 @@ export default function ProfilePage() {
     if (targetLanguage) payload.targetLanguage = targetLanguage;
     if (level) payload.level = level;
     updateMutation.mutate(payload);
+  };
+
+  const handleAvatarPick = () => {
+    setAvatarError(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setAvatarError("Можно загружать только JPG или PNG");
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      setAvatarError("Файл должен быть не больше 5 МБ");
+      return;
+    }
+    avatarMutation.mutate(file);
   };
 
   const overallProgress =
@@ -107,6 +143,7 @@ export default function ProfilePage() {
   if (!user) return <Navbar />;
 
   const isAdmin = user.role === "ADMIN";
+  const isUploadingAvatar = avatarMutation.isPending;
 
   return (
     <>
@@ -116,13 +153,55 @@ export default function ProfilePage() {
           <h1 className="text-3xl font-bold">Личный кабинет</h1>
 
           <div className="mt-6 flex items-start gap-6">
-            <Avatar className="h-28 w-28">
-              <AvatarImage src={resolveAssetUrl(user.avatarUrl) ?? undefined} />
-              <AvatarFallback className="text-2xl">
-                {user.firstName[0]}
-                {user.lastName[0]}
-              </AvatarFallback>
-            </Avatar>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAvatarPick}
+                disabled={isUploadingAvatar}
+                className="group relative h-28 w-28 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-70"
+                aria-label="Загрузить аватар"
+              >
+                <Avatar className="h-28 w-28">
+                  <AvatarImage src={resolveAssetUrl(user.avatarUrl) ?? undefined} />
+                  <AvatarFallback className="text-2xl">
+                    {user.firstName[0]}
+                    {user.lastName[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <Camera className="h-6 w-6" />
+                  )}
+                </span>
+                {isUploadingAvatar && (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 text-white">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </span>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <button
+                type="button"
+                onClick={handleAvatarPick}
+                disabled={isUploadingAvatar}
+                className="text-xs text-primary hover:underline disabled:opacity-60"
+              >
+                {isUploadingAvatar ? "Загрузка..." : "Изменить фото"}
+              </button>
+              {avatarError && (
+                <p className="max-w-[160px] text-center text-xs text-destructive">
+                  {avatarError}
+                </p>
+              )}
+            </div>
 
             <div className="flex-1 space-y-3 max-w-xl">
               <NameRow

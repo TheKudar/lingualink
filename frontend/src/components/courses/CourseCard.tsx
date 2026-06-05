@@ -32,7 +32,7 @@ export function CourseCard({ course, durationHours, authorName }: Props) {
           )}
         </div>
 
-        <div className="relative shrink-0">
+        <div className="shrink-0">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -43,22 +43,6 @@ export function CourseCard({ course, durationHours, authorName }: Props) {
           ) : (
             <div className="h-16 w-16 rounded-md bg-muted" />
           )}
-          <button
-            type="button"
-            aria-label={favorite ? "Убрать из избранного" : "В избранное"}
-            onClick={(e) => {
-              e.preventDefault();
-              toggleCourse(course);
-            }}
-            className="absolute -top-1.5 -right-1.5"
-          >
-            <Heart
-              className={cn(
-                "h-5 w-5 stroke-[2.5] transition-colors",
-                favorite ? "fill-red-500 text-red-500" : "fill-transparent text-muted-foreground/40"
-              )}
-            />
-          </button>
         </div>
       </div>
 
@@ -79,8 +63,26 @@ export function CourseCard({ course, durationHours, authorName }: Props) {
         )}
       </div>
 
-      <div className="mt-2 text-base font-semibold text-primary">
-        {formatPrice(course.price)}
+      <div className="mt-2 flex items-center justify-between">
+        <div className="text-base font-semibold text-primary">
+          {formatPrice(course.price)}
+        </div>
+        <button
+          type="button"
+          aria-label={favorite ? "Убрать из избранного" : "В избранное"}
+          onClick={(e) => {
+            e.preventDefault();
+            toggleCourse(course);
+          }}
+          className="shrink-0"
+        >
+          <Heart
+            className={cn(
+              "h-5 w-5 stroke-[2.5] transition-colors",
+              favorite ? "fill-red-500 text-red-500" : "fill-transparent text-muted-foreground/40"
+            )}
+          />
+        </button>
       </div>
     </Link>
   );
