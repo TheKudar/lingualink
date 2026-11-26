@@ -6,7 +6,7 @@ import com.lingualink.user.entity.User;
 import com.lingualink.user.entity.UserRole;
 import com.lingualink.user.entity.UserStatus;
 import com.lingualink.user.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -41,8 +41,8 @@ class AuthAndUserFlowIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @BeforeEach
-    void setUp() {
+    @AfterEach
+    void cleanUp() {
         userRepository.deleteAll();
     }
 
