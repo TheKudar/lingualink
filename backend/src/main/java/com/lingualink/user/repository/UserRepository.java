@@ -23,7 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             WHERE u.status = :status
               AND (:excludeUserId IS NULL OR u.id <> :excludeUserId)
               AND (
-                    :query IS NULL
+                    :query = ''
                     OR LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%'))
                     OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%'))
                     OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%'))

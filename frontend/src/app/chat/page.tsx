@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, Send, UserPlus, X } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
+import { PracticeChat } from "@/components/ai/PracticeChat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -126,6 +127,7 @@ export default function ChatPage() {
     <>
       <Navbar />
       <main className="mx-auto max-w-7xl px-6 py-6">
+        <PracticeChat key={user.id} initialLanguage={user.targetLanguage ?? "ENGLISH"} />
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
           <aside className="flex flex-col gap-4">
             <div className="overflow-hidden rounded-2xl bg-white shadow-sm">

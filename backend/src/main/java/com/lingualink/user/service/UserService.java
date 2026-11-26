@@ -77,7 +77,7 @@ public class UserService {
         Long excludeUserId = excludeCurrentUser ? getAuthenticatedUser().getId() : null;
 
         return userRepository.searchActiveUsers(
-                        normalizeSearchQuery(query),
+                        query == null ? "" : query.trim(),
                         language,
                         level,
                         UserStatus.ACTIVE,
@@ -141,14 +141,6 @@ public class UserService {
     private User getAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return getUserByEmail(email);
-    }
-
-    private String normalizeSearchQuery(String query) {
-        if (query == null) {
-            return null;
-        }
-        String trimmed = query.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private ChatUserSearchResponse toChatUserSearchResponse(User user) {

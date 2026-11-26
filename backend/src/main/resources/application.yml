@@ -1,6 +1,10 @@
 spring:
   profiles:
     default: local
+  http:
+    client:
+      connect-timeout: 5s
+      read-timeout: 50s
   jpa:
     open-in-view: false
     hibernate:
@@ -18,6 +22,11 @@ spring:
 
 server:
   port: 8080
+
+openrouter:
+  base-url: https://openrouter.ai/api/v1
+  api-key: ${OPENROUTER_API_KEY:}
+  model: ${OPENROUTER_MODEL:deepseek/deepseek-v3.2}
 
 jwt:
   secret: ${JWT_SECRET}

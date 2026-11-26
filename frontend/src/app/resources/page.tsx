@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Check, Edit2, Plus, Trash2, X } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
+import { Translator } from "@/components/ai/Translator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dictionaryService } from "@/services/dictionaryService";
@@ -167,6 +168,7 @@ export default function ResourcesPage() {
     <>
       <Navbar />
       <main className="mx-auto max-w-7xl px-6 py-6">
+        <Translator key={user.id} initialLanguage={user.nativeLanguage ?? "RUSSIAN"} />
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
           <aside className="space-y-4 rounded-2xl bg-white p-4 shadow-sm">
             <form onSubmit={createDictionary} className="space-y-3">
